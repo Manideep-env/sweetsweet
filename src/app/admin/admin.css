@@ -1,0 +1,46 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* prevent body scroll */
+}
+
+
+.admin-container {
+  display: flex;
+  height: 100vh;
+  background-image: url('bg_admin.png');
+  background-size: cover;        /* or 'contain' based on your design */
+  background-position: center;   /* centers the image */
+  background-repeat: no-repeat;  /* prevents tiling */
+}
+
+.admin-boards {
+  flex: 1;
+  display: flex;
+  margin: 25px;
+}
+
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #f3f4f6;
+  border-radius: 0 20px 20px 0;
+  
+}
+
+.admin-content {
+  flex: 1;
+  overflow-y: auto; /* This enables vertical scrolling */
+  padding: 1.5rem;
+}
+
+.nav-bar {
+  border-radius: 20px 20px 0 0;
+  overflow: hidden; /* clips inner corners if needed */
+}
+
+/* Plus optional scrollbar hiding */
+.admin-content::-webkit-scrollbar {
+  display: none;
+}
