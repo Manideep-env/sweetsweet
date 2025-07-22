@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useCart } from '@/context/CartContext'; // ✅ assumes you have this
 import './Navbar.css';
 
 export default function Navbar() {
   const [isAdmin, setIsAdmin] = useState(false);
   const pathname = usePathname();
+  const { cart } = useCart();
 
   useEffect(() => {
     fetch('/api/verify')
@@ -22,6 +24,7 @@ export default function Navbar() {
   };
 
   const isAdminRoute = pathname.startsWith('/admin');
+  const itemCount = cart?.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <nav className="navbar">
@@ -30,7 +33,11 @@ export default function Navbar() {
       {!isAdminRoute && (
         <>
           <Link href="/categories">Categories</Link>
-          <Link href="/cart" className="ml-auto text-white bg-blue-600 px-4 py-2 rounded">Cart</Link>
+
+          <Link href="/cart" className="ml-auto relative cart-icon">
+            🛒
+            {itemCount > 0 && <span className="cart-count">{itemCount}</span>}
+          </Link>
         </>
       )}
 

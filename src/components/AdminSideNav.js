@@ -11,7 +11,7 @@ const links = [
   { href: '/admin/add-product', label: 'Add new Product' },
   { href: '/admin/add-category', label: 'Add new Category' },
   { href: '/admin/discount', label: 'Discounts' },
-  { href: '/admin/user-list', label: 'Users list' },
+  { href: '/admin/users', label: 'Users list' },
   { href: '/admin/invoice', label: 'Invoice' },
 ];
 

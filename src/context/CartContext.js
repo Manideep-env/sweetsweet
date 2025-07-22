@@ -17,22 +17,27 @@ export function CartProvider({ children }) {
   }, [cart]);
 
   const addToCart = (product) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.id === product.id
-            ? {
-                ...item,
-                quantity: item.quantity + (product.quantity || 0),
-                weight: product.weight || item.weight,
-              }
-            : item
-        );
-      }
-      return [...prev, product];
-    });
-  };
+  setCart((prev) => {
+    const existing = prev.find((item) => item.id === product.id);
+
+    if (existing) {
+      return prev.map((item) =>
+        item.id === product.id
+          ? {
+              ...item,
+              quantity: (item.quantity || 0) + (product.quantity || 0),
+              weight: (item.weight || 0) + (product.weight || 0),
+            }
+          : item
+      );
+    }
+
+    return [...prev, product];
+  });
+};
+
+
+
 
   const removeFromCart = (id) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
