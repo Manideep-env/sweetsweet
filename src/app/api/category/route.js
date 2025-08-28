@@ -1,7 +1,6 @@
-// src/app/api/category/route.js
 import { NextResponse } from 'next/server';
-import { Category } from '@/models';
-import { getSellerFromToken } from '@/lib/get-seller-from-token';
+import { Category } from '@/models'; // Assuming '@/models' maps to your models directory
+import { getSellerFromToken } from '@/lib/get-seller-from-token'; // Assuming this utility exists
 
 // GET all categories for the authenticated seller
 export async function GET(req) {
@@ -30,11 +29,17 @@ export async function POST(req) {
   }
 
   try {
-    const body = await req.json();
+    const body = await req.json(); // Correctly parse JSON body
+    const { name, image } = body;
+
+    if (!name) {
+      return NextResponse.json({ error: 'Category name is required.' }, { status: 400 });
+    }
+
     const newCategory = await Category.create({
-      name: body.name,
-      image: body.image || null,
-      sellerId: seller.sellerId, // DATA ISOLATION
+      name,
+      image: image || null,
+      sellerId: seller.sellerId,
     });
     return NextResponse.json(newCategory, { status: 201 });
   } catch (error) {

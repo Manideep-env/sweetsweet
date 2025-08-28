@@ -1,7 +1,6 @@
-// src/app/api/category/[id]/route.js
 import { NextResponse } from 'next/server';
-import { Category } from '@/models';
-import { getSellerFromToken } from '@/lib/get-seller-from-token';
+import { Category } from '@/models'; // Assuming '@/models' maps to your models directory
+import { getSellerFromToken } from '@/lib/get-seller-from-token'; // Assuming this utility exists
 
 // PUT: Update a category owned by the authenticated seller
 export async function PUT(req, { params }) {
@@ -13,6 +12,11 @@ export async function PUT(req, { params }) {
   try {
     const { id } = params;
     const body = await req.json();
+    const { name, image } = body; // Expect image URL/path from client
+
+    if (!name) {
+        return NextResponse.json({ error: 'Category name is required.' }, { status: 400 });
+    }
 
     // DATA ISOLATION: Find category by its ID and the seller's ID
     const category = await Category.findOne({
@@ -23,7 +27,7 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: 'Category not found or permission denied.' }, { status: 404 });
     }
 
-    await category.update({ name: body.name, image: body.image });
+    await category.update({ name, image: image || null }); // Update the image path
     return NextResponse.json(category);
   } catch (error) {
     console.error('[CATEGORY_PUT_ERROR]', error);

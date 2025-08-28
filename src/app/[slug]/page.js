@@ -83,8 +83,8 @@ export default function StorefrontPage() {
       <div className="featured-section">
         <div className="carousel-container">
           <button onClick={handleLeft} className="carousel-btn">‹</button>
-          <div className="carousel-track" style={{ transform: `translateX(-${currentIndex * 236}px)` }}>
-            {featured.map((product, index) => {
+          <div className="carousel-track">
+            {featured.slice(currentIndex, currentIndex + 4).map((product, index) => {
               const bgColors = ['#FECACA', '#FED7AA', '#BBF7D0', '#DDD6FE'];
               const bgColor = bgColors[index % bgColors.length];
               const basePrice = parseFloat(product.pricePerKg ?? product.pricePerUnit ?? 0);
