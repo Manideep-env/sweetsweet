@@ -1,32 +1,68 @@
 import { NextResponse } from 'next/server';
+import { getSellerFromToken } from '@/lib/get-seller-from-token'; // Adjust path if needed
 
 export async function POST(req) {
-  console.log("\n--- NEW REQUEST RECEIVED ---");
+  // 1. Authenticate the request and get the seller
+  const sellerPayload = await getSellerFromToken(req);
+
+  if (!sellerPayload) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  // 2. Extract the secure sellerId and the messages
+  const { sellerId } = sellerPayload;
   const { messages } = await req.json();
 
-  // Define the tools your AI can use
   const tools = [
     {
       type: 'function',
       function: {
-        name: 'get_dashboard_stats',
-        description: 'Fetches key statistics for the admin dashboard, like order and product counts.',
+        name: 'get_order_stats',
+        description: 'Fetches e-commerce order statistics, such as the total number of orders today and the count of pending orders.',
         parameters: { type: 'object', properties: {} },
       },
+    },
+    {
+        type: 'function',
+        function: {
+          name: 'get_product_count',
+          description: 'Gets the total number of products in the store.',
+          parameters: { type: 'object', properties: {} },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+          name: 'get_category_count',
+          description: 'Gets the total number of categories in the store.',
+          parameters: { type: 'object', properties: {} },
+        },
     },
     {
       type: 'function',
       function: {
         name: 'list_all_categories',
-        description: 'Retrieves a list of all product categories from the database.',
+        description: 'Retrieves a list of all product categories from the database, not a count.',
         parameters: { type: 'object', properties: {} },
       },
+    },
+    {
+        type: 'function',
+        function: {
+          name: 'get_products_by_category',
+          description: 'Gets a list of all products belonging to a specific category name.',
+          parameters: {
+            type: 'object',
+            properties: {
+                category_name: { type: 'string', description: 'The name of the category to search for, e.g., "Scented Candles"' }
+            },
+            required: ['category_name'],
+          },
+        },
     },
   ];
 
   try {
-    console.log("1. Sending request to Ollama...");
-    // 1. Send the user's prompt to your local Ollama server
     const ollamaResponse = await fetch('http://localhost:11434/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -34,90 +70,50 @@ export async function POST(req) {
         model: 'llama3.2',
         messages: messages,
         tools: tools,
-        stream: false, // Get the full response at once
+        stream: false,
       }),
     });
 
-    if (!ollamaResponse.ok) {
-  console.error("Ollama API Error:", ollamaResponse.statusText);
-  throw new Error(`Ollama API error: ${ollamaResponse.statusText}`);
-    }
+    if (!ollamaResponse.ok) throw new Error(`Ollama API error: ${ollamaResponse.statusText}`);
 
     const responseData = await ollamaResponse.json();
-    console.log("2. Received response from Ollama:", responseData);
     const responseMessage = responseData.message;
 
-    // FIX: Add a check to handle incorrectly formatted tool calls from some models
-    if (responseMessage.content && typeof responseMessage.content === 'string') {
-        try {
-            const parsedContent = JSON.parse(responseMessage.content);
-            if (parsedContent.name && parsedContent.parameters) {
-                console.log("Correcting improperly formatted tool call from model...");
-                // Manually construct the tool_calls structure
-                responseMessage.tool_calls = [{
-                    function: {
-                        name: parsedContent.name,
-                        arguments: parsedContent.parameters,
-                    }
-                }];
-            }
-        } catch (e) {
-            // It's not a JSON string, so we assume it's a regular message. Do nothing.
-        }
-    }
-
-    // 2. Check if the model wants to use a tool
     if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-      console.log("3. Ollama requested a tool call.");
       const toolCall = responseMessage.tool_calls[0];
       const toolName = toolCall.function.name;
       const toolArgs = toolCall.function.arguments;
 
-      // 3. Call your internal MCP server to execute the tool
-  const toolResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/mcp`, {
+      const toolResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jsonrpc: '2.0',
           method: toolName,
-          params: toolArgs,
-          id: 1, // Dummy ID
+          params: { ...toolArgs, sellerId: sellerId }, // Use the secure sellerId
+          id: 1,
         }),
       });
 
-      if (!toolResponse.ok) {
-  throw new Error(`MCP Server error: ${toolResponse.statusText}`);
-      }
+      if (!toolResponse.ok) throw new Error(`MCP Server error: ${toolResponse.statusText}`);
       
-      console.log("4. Received response from MCP tool server.");
       const toolResultJson = await toolResponse.json();
       const toolResultContent = toolResultJson.content;
 
-      // 4. Send the tool's result back to Ollama for a final answer
       const finalResponse = await fetch('http://localhost:11434/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'llama3.2',
-          messages: [
-            ...messages,
-            responseMessage, // Include the model's first response (the tool request)
-            {
-              role: 'tool',
-              content: toolResultContent,
-            },
-          ],
+          messages: [ ...messages, responseMessage, { role: 'tool', content: toolResultContent } ],
           stream: false,
         }),
       });
 
       const finalData = await finalResponse.json();
-      console.log("5. Sending final tool-based response to client.");
       return NextResponse.json({ response: finalData.message });
     }
 
-    console.log("3. Ollama answered directly. Sending response to client.");
-    // If the model answered directly without a tool
     return NextResponse.json({ response: responseMessage });
 
   } catch (error) {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-// (Your StatCard component remains the same)
+// StatCard component remains the same
 function StatCard({ title, value }) {
   return (
     <div className="bg-white shadow-md rounded-2xl p-4 text-center">
@@ -13,14 +13,14 @@ function StatCard({ title, value }) {
   );
 }
 
-// Main Component Updated with Chat
+// Main AdminPanel Component
 export default function AdminPanel() {
   const [stats, setStats] = useState({ /* ...initial stats */ });
   const [messages, setMessages] = useState([]);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Your existing useEffect for stats
+  // useEffect for stats remains the same
   useEffect(() => {
     async function fetchStats() {
       try {
@@ -43,7 +43,10 @@ export default function AdminPanel() {
     setPrompt('');
 
     try {
-      const res = await axios.post('/api/chat', { messages: [...messages, userMessage] });
+      // UPDATED: No more sellerId. The auth cookie is sent automatically.
+      const res = await axios.post('/api/chat', { 
+        messages: [...messages, userMessage] 
+      });
       setMessages((prev) => [...prev, res.data.response]);
     } catch (err) {
       console.error("Error communicating with AI", err);
@@ -58,14 +61,13 @@ export default function AdminPanel() {
     <main className="p-4">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Your StatCards */}
         <StatCard title="Total Orders Today" value={stats.totalOrdersToday} />
         <StatCard title="Pending Orders" value={stats.pendingOrders} />
         <StatCard title="Total Sweets" value={stats.totalProducts} />
         <StatCard title="Total Categories" value={stats.totalCategories} />
       </div>
 
-      {/* NEW: AI Chat Assistant Section */}
+      {/* AI Chat Assistant Section */}
       <div className="mt-8 bg-white shadow-md rounded-2xl p-4">
         <h2 className="text-xl font-semibold mb-2">AI Assistant 🤖</h2>
         <div className="h-64 overflow-y-auto border rounded-lg p-2 mb-2">
@@ -83,7 +85,7 @@ export default function AdminPanel() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             className="w-full p-2 border rounded-lg"
-            placeholder="Ask something like: 'How many pending orders do we have?'"
+            placeholder="Ask a question about your store..."
             disabled={isLoading}
           />
         </form>
