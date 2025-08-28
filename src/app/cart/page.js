@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCart } from '@/context/CartContext';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import './cart.css';
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState([]);
+  const { cart, removeFromCart, clearCart, storeSlug } = useCart();
+  const router = useRouter();
+  
   const [total, setTotal] = useState(0);
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '',
@@ -13,57 +17,30 @@ export default function CartPage() {
   });
 
   useEffect(() => {
-    const items = JSON.parse(localStorage.getItem('cart')) || [];
-
-    // Ensure prices and weights are numbers
-    const parsedItems = items.map((item) => ({
-      ...item,
-      pricePerKg: item.pricePerKg ? parseFloat(item.pricePerKg) : null,
-      pricePerUnit: item.pricePerUnit ? parseFloat(item.pricePerUnit) : null,
-      weight: item.weight ? parseFloat(item.weight) : null,
-      quantity: item.quantity ? parseInt(item.quantity) : 1,
-    }));
-
-    setCartItems(parsedItems);
-  }, []);
-
-  useEffect(() => {
-    const totalPrice = cartItems.reduce((sum, item) => {
+    const totalPrice = cart.reduce((sum, item) => {
       let itemTotal = 0;
-
+      // ✅ FIX 1: Ensure prices are numbers before multiplication
       if (item.weight && item.pricePerKg) {
-        itemTotal = item.weight * item.pricePerKg;
+        itemTotal = parseFloat(item.weight) * parseFloat(item.pricePerKg);
       } else if (item.quantity && item.pricePerUnit) {
-        itemTotal = item.quantity * item.pricePerUnit;
+        itemTotal = parseInt(item.quantity) * parseFloat(item.pricePerUnit);
       }
-
       return sum + itemTotal;
     }, 0);
-
     setTotal(totalPrice);
-  }, [cartItems]);
-
-  const updateQuantity = (slug, delta) => {
-    const updated = cartItems.map(item =>
-      item.slug === slug
-        ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-        : item
-    );
-    setCartItems(updated);
-    localStorage.setItem('cart', JSON.stringify(updated));
-  };
-
-  const removeItem = (slug) => {
-    const updated = cartItems.filter(item => item.slug !== slug);
-    setCartItems(updated);
-    localStorage.setItem('cart', JSON.stringify(updated));
-  };
+  }, [cart]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (e) => {
+    e.preventDefault();
+    if (!storeSlug) {
+      alert("Error: Store information is missing. Please add an item to your cart first.");
+      return;
+    }
+
     const customerName = `${form.firstName} ${form.lastName}`;
     const address = `${form.street}, ${form.apartment || ''}, ${form.landmark || ''}, ${form.city}, ${form.state} - ${form.zip}, ${form.country}`;
 
@@ -74,31 +51,31 @@ export default function CartPage() {
         customerName,
         phoneNumber: form.phone,
         address,
-        items: cartItems.map((item) => ({
-          productId: item.id,
-          slug: item.slug,
-          weight: item.weight,
-          quantity: item.quantity,
+        items: cart.map(item => ({ 
+            productId: item.id,
+            slug: item.slug, 
+            quantity: item.quantity, 
+            weight: item.weight 
         })),
+        storeSlug: storeSlug,
       }),
     });
 
     if (res.ok) {
       const data = await res.json();
-      alert(`Order placed successfully! ID: ${data.orderId}`);
-      localStorage.removeItem('cart');
-      setCartItems([]);
+      alert(`Order placed successfully! Your Order ID is: ${data.orderId}`);
+      clearCart();
+      router.push(`/${storeSlug}`);
     } else {
-      const errorData = await res.json();
-      alert(`Error: ${errorData.error}`);
+      const data = await res.json();
+      alert(`Error: ${data.error || 'Could not place order.'}`);
     }
   };
 
   return (
     <div className="cart-container">
       <h1>Your Cart</h1>
-
-      {cartItems.length === 0 ? (
+      {cart.length === 0 ? (
         <p>Your cart is empty.</p>
       ) : (
         <>
@@ -109,47 +86,38 @@ export default function CartPage() {
               </tr>
             </thead>
             <tbody>
-              {cartItems.map((item, index) => {
-                let unitLabel = '';
-                let unitPrice = 0;
+              {cart.map((item) => {
+                // ✅ FIX 2: Convert the unit price to a number immediately
+                let unitPrice = parseFloat(item.pricePerKg ?? item.pricePerUnit ?? 0);
+                
                 let itemTotal = 0;
-
                 if (item.weight && item.pricePerKg) {
-                  unitLabel = `${item.weight}kg`;
-                  unitPrice = item.pricePerKg;
-                  itemTotal = item.weight * item.pricePerKg;
+                  itemTotal = parseFloat(item.weight) * parseFloat(item.pricePerKg);
                 } else if (item.quantity && item.pricePerUnit) {
-                  unitLabel = `${item.quantity} pcs`;
-                  unitPrice = item.pricePerUnit;
-                  itemTotal = item.quantity * item.pricePerUnit;
+                  itemTotal = parseInt(item.quantity) * parseFloat(item.pricePerUnit);
                 }
 
                 return (
-                  <tr key={`${item.slug}-${index}`}>
+                  <tr key={item.id}>
                     <td>
                       <div className="cart-item-info">
-                        <img src={`/${item.image}`} alt={item.title} />
+                        <img src={item.image || '/no-image.jpg'} alt={item.name} />
                         <div>
-                          <strong>{item.title}</strong>
-                          <p>{item.category}</p>
+                          <strong>{item.name}</strong>
+                          <p>{item.category?.name || ''}</p>
                         </div>
                       </div>
                     </td>
                     <td>
-                      {item.weight && item.pricePerKg ? (
-                        <span>{item.weight} kg</span>
-                      ) : (
-                        <div className="quantity-controls">
-                          <button onClick={() => updateQuantity(item.slug, -1)}>-</button>
-                          <span>{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.slug, 1)}>+</button>
-                        </div>
-                      )}
+                      {item.weight ? `${item.weight} kg` : item.quantity}
                     </td>
-                    <td>₹{unitPrice.toFixed(2)}</td>
+                    <td>
+                      {/* This will now work correctly */}
+                      ₹{unitPrice.toFixed(2)}
+                    </td>
                     <td>₹{itemTotal.toFixed(2)}</td>
                     <td>
-                      <button className="remove-btn" onClick={() => removeItem(item.slug)}>✖</button>
+                      <button className="remove-btn" onClick={() => removeFromCart(item.id)}>✖</button>
                     </td>
                   </tr>
                 );
@@ -162,13 +130,8 @@ export default function CartPage() {
           </div>
 
           <h2>Shipping Details</h2>
-          <form
-            className="checkout-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleCheckout();
-            }}
-          >
+          <form className="checkout-form" onSubmit={handleCheckout}>
+             {/* Form inputs remain the same */}
             <div className="form-row">
               <input name="firstName" placeholder="First Name" onChange={handleChange} required />
               <input name="lastName" placeholder="Last Name" onChange={handleChange} required />

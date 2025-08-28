@@ -1,33 +1,31 @@
 // /api/admin/invoice/[id]/route.js
 import { Order, OrderItem, Product, Discount } from '@/models';
+import { getSellerFromToken } from '@/lib/get-seller-from-token';
+import { NextResponse } from 'next/server';
 
 export async function GET(req, { params }) {
-  const { id } = params;
-
+  const seller = await getSellerFromToken(req);
+  if (!seller) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
   try {
-    const order = await Order.findByPk(id, {
+    const { id } = params;
+    const order = await Order.findOne({
+      where: { id, sellerId: seller.sellerId }, // DATA ISOLATION
       include: [
-        {
-          model: OrderItem,
-          as: 'items',
-          include: {
-            model: Product,
-            attributes: ['name'],
-          },
-        },
-        {
-          model: Discount,
-          through: { attributes: [] },
-        },
+        { model: OrderItem, as: 'items', include: { model: Product, attributes: ['name'] }},
+        { model: Discount, through: { attributes: [] } },
       ],
     });
 
     if (!order) {
-      return new Response(JSON.stringify({ error: 'Order not found' }), { status: 404 });
+      return NextResponse.json({ error: 'Order not found or permission denied.' }, { status: 404 });
     }
 
-    return new Response(JSON.stringify(order.toJSON()), { status: 200 });
+    return NextResponse.json(order.toJSON());
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Server error' }), { status: 500 });
+    console.error('[INVOICE_GET_ERROR]', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

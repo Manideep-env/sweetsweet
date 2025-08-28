@@ -3,7 +3,7 @@ import { Sequelize } from 'sequelize';
 import mysql2 from 'mysql2'; // 👈 add this line
 
 export const sequelize = new Sequelize(
-  process.env.DB_NAME || 'sweetshop',
+  process.env.DB_NAME || 'instantb2c',
   process.env.DB_USER || 'root',
   process.env.DB_PASSWORD || '',
   {

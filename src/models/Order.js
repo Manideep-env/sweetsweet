@@ -1,4 +1,4 @@
-// models/Order.js
+// src/models/Order.js
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../lib/db.js';
 
@@ -28,7 +28,14 @@ export const Order = sequelize.define('Order', {
     type: DataTypes.ENUM('Pending', 'Confirmed'),
     defaultValue: 'Pending',
   },
-  
+  sellerId: { // Tenant Foreign Key
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Sellers',
+      key: 'id',
+    },
+  },
 }, {
   tableName: 'Orders',
   timestamps: true,

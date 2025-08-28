@@ -1,24 +1,31 @@
 // src/app/api/admin/orders/[id]/status/route.js
 import { Order } from '@/models';
-import { sequelize } from '@/lib/db';
+import { getSellerFromToken } from '@/lib/get-seller-from-token';
+import { NextResponse } from 'next/server';
 
 export async function PUT(req, { params }) {
-  const { id } = params;
-  try {
-    await sequelize.sync();
+  const seller = await getSellerFromToken(req);
+  if (!seller) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    const order = await Order.findByPk(id);
+  try {
+    const { id } = params;
+    const order = await Order.findOne({
+        where: { id, sellerId: seller.sellerId } // DATA ISOLATION
+    });
+
     if (!order) {
-      return new Response(JSON.stringify({ error: 'Order not found' }), { status: 404 });
+      return NextResponse.json({ error: 'Order not found or permission denied.' }, { status: 404 });
     }
 
     // Toggle status
     const newStatus = order.status === 'Pending' ? 'Confirmed' : 'Pending';
     await order.update({ status: newStatus });
 
-    return new Response(JSON.stringify({ success: true, status: newStatus }), { status: 200 });
+    return NextResponse.json({ success: true, status: newStatus });
   } catch (err) {
     console.error('Error updating status:', err);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

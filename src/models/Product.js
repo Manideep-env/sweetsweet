@@ -1,7 +1,6 @@
-// models/Product.js
+// src/models/Product.js
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../lib/db.js';
-import { Category } from './Category.js';
 
 export const Product = sequelize.define('Product', {
   id: {
@@ -23,6 +22,14 @@ export const Product = sequelize.define('Product', {
     allowNull: false,
     references: {
       model: 'Categories',
+      key: 'id',
+    },
+  },
+  sellerId: { // Tenant Foreign Key
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Sellers',
       key: 'id',
     },
   },

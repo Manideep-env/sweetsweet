@@ -1,4 +1,4 @@
-// models/Category.js
+// src/models/Category.js
 import { DataTypes } from 'sequelize';
 import { sequelize } from '../lib/db.js';
 
@@ -10,12 +10,19 @@ export const Category = sequelize.define('Category', {
   },
   name: {
     type: DataTypes.STRING,
-    unique: true,
-    allowNull: false,
+    allowNull: false, // Note: unique constraint removed to allow different sellers to have same category name
   },
   image: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  sellerId: { // Tenant Foreign Key
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Sellers',
+      key: 'id',
+    },
   },
 }, {
   tableName: 'Categories',

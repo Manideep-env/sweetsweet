@@ -24,6 +24,14 @@ export const Discount = sequelize.define('Discount', {
       key: 'id',
     },
   },
+  sellerId: { // Tenant Foreign Key
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Sellers',
+      key: 'id',
+    },
+  },
   percentage: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: false,
