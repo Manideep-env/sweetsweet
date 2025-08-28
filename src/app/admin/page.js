@@ -3,14 +3,24 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-export default function AdminPanel() {
-  const [stats, setStats] = useState({
-    totalOrdersToday: 0,
-    pendingOrders: 0,
-    totalProducts: 0,
-    totalCategories: 0,
-  });
+// (Your StatCard component remains the same)
+function StatCard({ title, value }) {
+  return (
+    <div className="bg-white shadow-md rounded-2xl p-4 text-center">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <p className="text-2xl font-bold mt-2">{value}</p>
+    </div>
+  );
+}
 
+// Main Component Updated with Chat
+export default function AdminPanel() {
+  const [stats, setStats] = useState({ /* ...initial stats */ });
+  const [messages, setMessages] = useState([]);
+  const [prompt, setPrompt] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Your existing useEffect for stats
   useEffect(() => {
     async function fetchStats() {
       try {
@@ -20,29 +30,64 @@ export default function AdminPanel() {
         console.error('Error fetching admin stats:', err);
       }
     }
-
     fetchStats();
   }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!prompt.trim() || isLoading) return;
+
+    const userMessage = { role: 'user', content: prompt };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+    setPrompt('');
+
+    try {
+      const res = await axios.post('/api/chat', { messages: [...messages, userMessage] });
+      setMessages((prev) => [...prev, res.data.response]);
+    } catch (err) {
+      console.error("Error communicating with AI", err);
+      const errorMessage = { role: 'assistant', content: 'Sorry, I ran into an error.' };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <main className="p-4">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Your StatCards */}
         <StatCard title="Total Orders Today" value={stats.totalOrdersToday} />
         <StatCard title="Pending Orders" value={stats.pendingOrders} />
         <StatCard title="Total Sweets" value={stats.totalProducts} />
         <StatCard title="Total Categories" value={stats.totalCategories} />
       </div>
-    </main>
-  );
-}
 
-function StatCard({ title, value }) {
-  return (
-    <div className="bg-white shadow-md rounded-2xl p-4 text-center">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <p className="text-2xl font-bold mt-2">{value}</p>
-    </div>
+      {/* NEW: AI Chat Assistant Section */}
+      <div className="mt-8 bg-white shadow-md rounded-2xl p-4">
+        <h2 className="text-xl font-semibold mb-2">AI Assistant 🤖</h2>
+        <div className="h-64 overflow-y-auto border rounded-lg p-2 mb-2">
+          {messages.map((msg, index) => (
+            <div key={index} className={`mb-2 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+              <span className={`inline-block p-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                {msg.content}
+              </span>
+            </div>
+          ))}
+        </div>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            className="w-full p-2 border rounded-lg"
+            placeholder="Ask something like: 'How many pending orders do we have?'"
+            disabled={isLoading}
+          />
+        </form>
+      </div>
+    </main>
   );
 }
