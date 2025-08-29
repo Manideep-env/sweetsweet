@@ -16,7 +16,7 @@ const UserIcon = () => (
 export default function Navbar() {
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [storeName, setStoreName] = useState('');
+  const [storeName, setStoreName] = useState('instantB2C');
   const [customization, setCustomization] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -48,21 +48,25 @@ export default function Navbar() {
   }, [pathname]);
 
   useEffect(() => {
-    if (storeSlug) {
+    // If on the main homepage, always show the brand name
+    if (pathname === '/') {
+      setStoreName('instantB2C');
+      setCustomization(null); // Clear theme on homepage
+    } else if (storeSlug) {
+      // If on a store page, fetch the store's name and theme
       fetch(`/api/store/${storeSlug}`)
         .then(res => res.ok ? res.json() : Promise.reject())
         .then(data => setStoreName(data.storeName))
         .catch(() => setStoreName(''));
       
       fetch(`/api/store/${storeSlug}/customization`)
-        .then(res => res.ok ? res.json() : Promise.reject())
-        .then(data => setCustomization(data))
-        .catch(() => setCustomization(null));
+        .then(res => res.ok ? res.json() : null)
+        .then(setCustomization);
     } else {
-      setStoreName('');
-      setCustomization(null);
+      // Fallback for other non-store pages like /user/profile
+      setStoreName('instantB2C');
     }
-  }, [storeSlug]);
+  }, [storeSlug, pathname]); 
 
   const itemCount = cart?.length || 0;
   

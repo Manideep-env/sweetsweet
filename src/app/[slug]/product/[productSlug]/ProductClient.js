@@ -1,23 +1,29 @@
 'use client';
 
 import { useCart } from '@/context/CartContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import './product-page.css'; // New CSS file for styling
 
-// This component now receives the storeSlug prop
-export default function ProductClient({ product, storeSlug }) {
+export default function ProductClient({ product, storeSlug, customization }) {
   const { addToCart } = useCart();
   const [weight, setWeight] = useState(1);
   const [quantity, setQuantity] = useState(1);
 
-  // --- Logic from original component ---
+  // This useEffect applies the theme to the entire page body
+  useEffect(() => {
+    if (customization) {
+      document.body.style.backgroundColor = customization.backgroundColor;
+    }
+    return () => {
+      document.body.style.backgroundColor = ''; // Reset on component unmount
+    };
+  }, [customization]);
+
   const originalPrice = product.pricePerKg ?? product.pricePerUnit ?? 0;
-  const discountPercentage = Number(product.finalDiscount || 0);
   const effectivePrice = product.discountedPrice ?? originalPrice;
   const unitLabel = product.unitLabel || (product.pricePerKg ? 'kg' : 'unit');
-  // ---
 
   const handleAdd = () => {
-    // --- Payload creation from original component ---
     const payload = {
       id: product.id,
       slug: product.slug,
@@ -32,83 +38,71 @@ export default function ProductClient({ product, storeSlug }) {
     } else {
       payload.quantity = quantity;
     }
-    // ---
-
-    // ✅ KEY CHANGE: Pass the storeSlug when adding to cart
+    
     addToCart(payload, storeSlug);
     alert(`${product.title} added to cart!`);
   };
 
-  // --- Full JSX from original component ---
+  const pageStyles = customization ? {
+    '--store-primary-color': customization.primaryColor,
+  } : {};
+
   return (
-    <main className="p-6">
-      <h1 className="text-3xl font-bold">{product.title}</h1>
+    <main className="product-page-container" style={pageStyles}>
+      <div className="product-layout">
+        <div className="product-image-gallery">
+          <img
+            src={product.image || '/no-image.jpg'}
+            alt={product.title}
+            className="main-product-image"
+          />
+        </div>
 
-      <img
-        src={product.image || '/no-image.jpg'}
-        alt={product.title}
-        className="w-60 h-60 object-cover rounded mt-4"
-      />
+        <div className="product-details-panel">
+          <p className="product-category">{product.category?.name || 'Uncategorized'}</p>
+          <h1 className="product-title">{product.title}</h1>
+          <p className="product-description">{product.description}</p>
 
-      <p className="mt-4 text-lg">{product.description}</p>
-      <p className="mt-2 text-sm text-gray-500">
-        Category: {product.category?.name || 'Uncategorized'}
-      </p>
+          <div className="price-section">
+            {product.finalDiscount > 0 && originalPrice > effectivePrice ? (
+              <>
+                <span className="original-price">₹{originalPrice}</span>
+                <span className="sale-price">₹{effectivePrice}</span>
+              </>
+            ) : (
+              <span className="regular-price">₹{effectivePrice}</span>
+            )}
+            <span className="unit-label">/ {unitLabel}</span>
+          </div>
 
-      {discountPercentage > 0 && (
-        <p className="mt-2 text-sm text-green-600 font-semibold">
-          🎉 Best Deal: {discountPercentage}% Off!
-        </p>
-      )}
+          {product.pricePerKg ? (
+            <div className="quantity-selector">
+              <label>Weight (kg):</label>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={weight}
+                onChange={(e) => setWeight(parseFloat(e.target.value))}
+              />
+            </div>
+          ) : (
+            <div className="quantity-selector">
+              <label>Quantity:</label>
+              <input
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value))}
+              />
+            </div>
+          )}
 
-      <div className="mt-2 text-lg font-semibold">
-        {discountPercentage > 0 && originalPrice > effectivePrice ? (
-          <>
-            <span className="line-through text-gray-500 mr-2">
-              ₹{originalPrice} / {unitLabel}
-            </span>
-            <span className="text-red-600">
-              ₹{effectivePrice} / {unitLabel}
-            </span>
-          </>
-        ) : (
-          <span>
-            ₹{effectivePrice} / {unitLabel}
-          </span>
-        )}
+          <button onClick={handleAdd} className="add-to-cart-btn">
+            Add to Cart
+          </button>
+        </div>
       </div>
-
-      {product.pricePerKg ? (
-        <div className="mt-4">
-          <label className="block mb-1 font-medium">Weight (kg):</label>
-          <input
-            type="number"
-            min="0.1"
-            step="0.1"
-            value={weight}
-            onChange={(e) => setWeight(parseFloat(e.target.value))}
-            className="border px-2 py-1 rounded w-24"
-          />
-        </div>
-      ) : (
-        <div className="mt-4">
-          <label className="block mb-1 font-medium">Quantity:</label>
-          <input
-            type="number"
-            min="1"
-            value={quantity}
-            onChange={(e) => setQuantity(parseInt(e.target.value))}
-            className="border px-2 py-1 rounded w-24"
-          />
-        </div>
-      )}
-
-      <button
-        onClick={handleAdd}
-        className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-      >
-        Add to Cart
-      </button>
     </main>
   );
 }

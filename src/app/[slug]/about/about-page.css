@@ -1,0 +1,27 @@
+/* src/app/[slug]/about/about-page.css */
+.about-page-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.about-header-image {
+  height: 300px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+.about-content h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 1.5rem;
+}
+.about-content p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #4a5568;
+}

@@ -11,18 +11,34 @@ const links = [
   { href: '/admin/add-product', label: 'Add new Product' },
   { href: '/admin/add-category', label: 'Add new Category' },
   { href: '/admin/discount', label: 'Discounts' },
-  { href: '/admin/customization', label: 'Customization' }, // <-- New Link
+  { href: '/admin/customization', label: 'Customization' },
+  { href: '/admin/about', label: 'About' },
   { href: '/admin/invoice', label: 'Invoice' },
 ];
 
 export default function AdminSideNav() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [storeName, setStoreName] = useState('Admin Panel'); // Add state for store name
 
   useEffect(() => {
     fetch('/api/verify')
-      .then(res => res.ok ? setIsAdmin(true) : setIsAdmin(false))
-      .catch(() => setIsAdmin(false));
+      .then(res => {
+        if (res.ok) {
+          setIsAdmin(true);
+          return res.json(); // If the response is OK, parse the JSON body
+        }
+        throw new Error('Verification failed');
+      })
+      .then(data => {
+        if (data && data.storeName) {
+          setStoreName(data.storeName); // Set the store name from the response
+        }
+      })
+      .catch(() => {
+        setIsAdmin(false);
+        setStoreName('Admin Panel'); // Fallback on error
+      });
   }, []);
 
   const logout = async () => {
@@ -34,7 +50,8 @@ export default function AdminSideNav() {
   return (
     <aside className="admin-sidenav">
       <div>
-        <h2 className="admin-title">Sweet Store</h2>
+        {/* Display the dynamic store name */}
+        <h2 className="admin-title">{storeName}</h2>
         <nav className="admin-links">
           {links.map((link) => (
             <Link

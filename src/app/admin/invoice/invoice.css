@@ -1,34 +1,116 @@
-.invoice-container {
-  padding: 20px;
+/* src/app/admin/invoice/invoice.css */
+
+.page-container {
+  padding: 2rem;
+  color: #000000;
 }
 
-.invoice-input {
-  margin-bottom: 20px;
+.form-container {
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    max-width: 600px;
+    margin: 0 auto 2rem auto;
 }
 
-.invoice-input input {
-  padding: 8px;
-  width: 200px;
-  margin-right: 10px;
+.form-container h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    text-align: center;
 }
 
-.invoice-input button,
-.print-btn {
-  padding: 8px 12px;
-  background-color: #3f51b5;
+.invoice-form {
+    display: flex;
+    gap: 1rem;
+}
+
+.invoice-form input {
+    flex-grow: 1;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.invoice-form button {
+  background: rgb(199, 103, 0);
   color: white;
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
   border: none;
   cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.invoice-form button:hover {
+  background: rgb(233, 176, 4);
+}
+
+.invoice-preview-container {
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
 }
 
 .invoice-box {
-  border: 1px solid #ccc;
-  padding: 20px;
-  background: #fdfdfd;
-  margin-top: 20px;
-  max-width: 700px;
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    text-align: left;
+    margin-bottom: 1.5rem;
 }
 
-.invoice-box table {
-  margin-top: 10px;
+.invoice-header {
+    text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 1.5rem;
+}
+
+.customer-details {
+    margin-bottom: 1.5rem;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.invoice-table th,
+.invoice-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.invoice-table thead tr {
+  background-color: #f9f9f9;
+  font-weight: 600;
+}
+
+.total {
+    text-align: right;
+    margin-top: 1.5rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.print-btn {
+  background: rgb(199, 103, 0);
+  color: white;
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.print-btn:hover {
+  background: rgb(233, 176, 4);
 }

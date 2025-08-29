@@ -9,6 +9,7 @@ import { OrderDiscount } from './OrderDiscount.js';
 import { User } from './User.js'; // <-- Import User
 import { Address } from './Address.js'; // <-- Import Address
 import { StoreCustomization } from './StoreCustomization.js';
+import { AboutPage } from './AboutPage.js';
 
 
 // --- User and Address Associations ---
@@ -66,6 +67,9 @@ Discount.belongsToMany(Order, {
 Seller.hasOne(StoreCustomization, { foreignKey: 'sellerId' });
 StoreCustomization.belongsTo(Seller, { foreignKey: 'sellerId' });
 
+Seller.hasOne(AboutPage, { foreignKey: 'sellerId' });
+AboutPage.belongsTo(Seller, { foreignKey: 'sellerId' });
+
 // Export all models
 export {
   Seller,
@@ -78,4 +82,5 @@ export {
   Discount,
   User,     // <-- Export User
   Address,  // <-- Export Address
+  AboutPage,
 };

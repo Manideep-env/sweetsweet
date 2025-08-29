@@ -1,51 +1,110 @@
+/* /admin/orders/[id]/order-detail.css */
+
 .order-detail-container {
   padding: 2rem;
-  background: #fff;
-  border-radius: 10px;
-  max-width: 900px;
-  margin: auto;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  color: #000000;
 }
 
-.order-detail-container h2,
-.order-detail-container h3 {
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.detail-card {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.detail-card h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
   margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-card p {
+  margin-bottom: 0.5rem;
   color: #333;
 }
 
 .status-section {
-  margin: 1rem 0;
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.status-section select {
-  padding: 0.4rem 0.6rem;
-  font-size: 1rem;
-}
-
-.status-section button {
-  padding: 0.4rem 1rem;
-  background: #4CAF50;
-  border: none;
-  color: white;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.order-table {
-  width: 100%;
-  border-collapse: collapse;
   margin-top: 1rem;
 }
 
-.order-table th, .order-table td {
-  border: 1px solid #ccc;
-  padding: 0.5rem;
-  text-align: center;
+.status-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
 }
 
-.order-table th {
-  background-color: #f0f0f0;
+.status-controls select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    flex-grow: 1;
+}
+
+.status-controls button {
+  background: rgb(199, 103, 0);
+  color: white;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.status-controls button:hover {
+  background: rgb(233, 176, 4);
+}
+
+.items-section h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #ffffff;
+  color: rgb(0, 0, 0);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.items-table th,
+.items-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.items-table thead tr {
+  background: linear-gradient(to right, rgb(199, 103, 0), rgb(233, 176, 4));
+  color: #ffffff;
+}
+
+.items-table th {
+  font-weight: 600;
+}
+
+.loading-state {
+    padding: 2rem;
+    text-align: center;
 }

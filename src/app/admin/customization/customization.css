@@ -1,67 +1,69 @@
 /* src/app/admin/customization/customization.css */
-.customization-container {
+
+.page-container {
   padding: 2rem;
+  color: #000000;
 }
 
-.customization-container h1 {
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+.form-and-preview-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: flex-start;
 }
 
-.customization-container p {
-  color: #666;
-  margin-bottom: 2rem;
+.form-container, .preview-container {
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
 }
 
-.content-wrapper {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
+.form-container h2, .preview-container h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-container p {
+    color: #666;
+    margin-bottom: 1.5rem;
 }
 
 .customization-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .form-group label {
-  font-weight: 500;
-  margin-bottom: 0.5rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
 }
 
-.form-group input[type="text"] {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+.form-group input[type="text"], .form-group input[type="file"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
 }
 
 .form-group input[type="color"] {
-  width: 100%;
-  height: 40px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  cursor: pointer;
+    width: 100%;
+    height: 40px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
-/* --- NEW Styles for File Upload --- */
 .file-upload-wrapper {
     display: flex;
     align-items: center;
     gap: 10px;
-}
-
-.file-upload-wrapper input[type="file"] {
-    border: 1px solid #ccc;
-    padding: 8px;
-    border-radius: 6px;
-    flex-grow: 1;
 }
 
 .file-upload-wrapper button {
@@ -72,10 +74,6 @@
     cursor: pointer;
     font-weight: 500;
 }
-.file-upload-wrapper button:disabled {
-    background-color: #f3f4f6;
-    cursor: not-allowed;
-}
 
 .image-path {
     font-size: 0.8rem;
@@ -83,24 +81,22 @@
     margin-top: 8px;
     word-break: break-all;
 }
-/* --- End New Styles --- */
 
 .save-btn {
-  padding: 12px 20px;
-  background-color: #2563eb;
+  background: rgb(199, 103, 0);
   color: white;
-  border: none;
   border-radius: 6px;
+  padding: 0.75rem 1rem;
+  border: none;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
+  transition: background 0.3s ease;
   align-self: flex-start;
 }
 
-/* Preview Section */
-.preview-section h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+.save-btn:hover {
+  background: rgb(233, 176, 4);
 }
 
 .preview-box {
@@ -114,7 +110,7 @@
   width: 100%;
   height: 150px;
   object-fit: cover;
-  background-color: #f3f4f6; /* Placeholder color */
+  background-color: #f3f4f6;
 }
 
 .preview-content {
@@ -129,4 +125,10 @@
   font-weight: 500;
   margin-top: 1rem;
   transition: background-color 0.3s;
+}
+
+@media (max-width: 900px) {
+    .form-and-preview-layout {
+        grid-template-columns: 1fr;
+    }
 }

@@ -2,13 +2,16 @@
 
 /* --- Main Navbar Container --- */
 .navbar {
+  position: sticky;
   margin-top: 16px; /* Space from the top of the viewport */
   z-index: 50;
 
   /* Sizing and Shape */
+
   width: 100%;
   height: 72px;
-  border-radius: 9999px; /* This creates the pill shape */
+  border-radius: 9999px;
+  
 
   /* Appearance */
   background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white */

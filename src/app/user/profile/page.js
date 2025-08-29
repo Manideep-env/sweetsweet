@@ -1,38 +1,61 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCart } from '@/context/CartContext';
 import './profile.css';
 
 export default function ProfilePage() {
   const [userData, setUserData] = useState(null);
   const [addresses, setAddresses] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [customization, setCustomization] = useState(null);
   const router = useRouter();
+  const { storeSlug } = useCart();
 
-  // State for editing modes
+  const sections = { details: useRef(null), addresses: useRef(null), orders: useRef(null) };
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
-
-  // State for form inputs
   const [profileForm, setProfileForm] = useState({ fullName: '' });
   const [addressForm, setAddressForm] = useState({});
 
-  const fetchProfileData = () => {
-    fetch('/api/user/profile')
-      .then(res => res.ok ? res.json() : Promise.reject('Not authenticated'))
-      .then(data => {
-        setUserData(data.user);
-        setAddresses(data.addresses);
-        setProfileForm({ fullName: data.user.fullName });
-        setIsLoading(false);
-      })
-      .catch(() => router.push('/user/login'));
+  // --- CORRECTED: Single, robust data fetching function ---
+  const fetchPageData = () => {
+    Promise.all([
+      fetch('/api/user/profile'),
+      storeSlug ? fetch(`/api/store/${storeSlug}/customization`) : Promise.resolve(null)
+    ])
+    .then(async ([profileRes, customRes]) => {
+      if (!profileRes.ok) throw new Error('Not authenticated');
+      
+      const profileData = await profileRes.json();
+      const customData = customRes ? await customRes.json() : null;
+
+      setUserData(profileData.user);
+      setAddresses(profileData.addresses);
+      setOrders(profileData.orders);
+      setProfileForm({ fullName: profileData.user.fullName });
+      setCustomization(customData);
+    })
+    .catch(() => router.push('/user/login'))
+    .finally(() => setIsLoading(false));
   };
 
   useEffect(() => {
-    fetchProfileData();
-  }, [router]);
+    fetchPageData();
+  }, [router, storeSlug]);
+
+  useEffect(() => {
+    if (customization) {
+      document.body.style.backgroundColor = customization.backgroundColor;
+    }
+    return () => { document.body.style.backgroundColor = ''; };
+  }, [customization]);
+
+  const scrollToSection = (sectionKey) => {
+    sections[sectionKey].current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -44,7 +67,7 @@ export default function ProfilePage() {
     if (res.ok) {
       alert('Profile updated!');
       setIsEditingProfile(false);
-      fetchProfileData(); // Refresh data
+      fetchPageData();
     } else {
       alert('Failed to update profile.');
     }
@@ -52,28 +75,28 @@ export default function ProfilePage() {
 
   const handleAddressUpdate = async (addressId) => {
     const res = await fetch(`/api/user/addresses/${addressId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(addressForm),
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(addressForm),
     });
     if (res.ok) {
-        alert('Address updated!');
-        setEditingAddressId(null);
-        fetchProfileData(); // Refresh data
+      alert('Address updated!');
+      setEditingAddressId(null);
+      fetchPageData();
     } else {
-        alert('Failed to update address.');
+      alert('Failed to update address.');
     }
   };
 
   const handleAddressDelete = async (addressId) => {
     if (confirm('Are you sure you want to delete this address?')) {
-        const res = await fetch(`/api/user/addresses/${addressId}`, { method: 'DELETE' });
-        if (res.ok) {
-            alert('Address deleted.');
-            fetchProfileData(); // Refresh data
-        } else {
-            alert('Failed to delete address.');
-        }
+      const res = await fetch(`/api/user/addresses/${addressId}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Address deleted.');
+        fetchPageData();
+      } else {
+        alert('Failed to delete address.');
+      }
     }
   };
 
@@ -87,66 +110,135 @@ export default function ProfilePage() {
     setAddressForm(address);
   };
 
-  if (isLoading) return <div className="profile-container">Loading...</div>;
+  const handleCancelOrder = async (orderId) => {
+    if (confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+      const res = await fetch(`/api/user/orders/${orderId}/cancel`, {
+        method: 'PUT',
+      });
+      if (res.ok) {
+        alert('Order cancelled successfully.');
+        fetchPageData();
+      } else {
+        const data = await res.json();
+        alert(`Failed to cancel order: ${data.error || 'An unknown error occurred.'}`);
+      }
+    }
+  };
+
+  if (isLoading || !userData) return <div className="loading-state">Loading Profile...</div>;
+
+  const pageStyles = customization ? { '--store-primary-color': customization.primaryColor } : {};
 
   return (
-    <div className="profile-container">
-      <h1>Your Profile</h1>
-      
-      <div className="profile-section">
-        <h2>Account Details</h2>
-        {isEditingProfile ? (
-          <form onSubmit={handleProfileUpdate} className="profile-form">
-            <input
-              type="text"
-              value={profileForm.fullName}
-              onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
-            />
-            <div className="form-actions">
-              <button type="submit">Save</button>
-              <button type="button" onClick={() => setIsEditingProfile(false)}>Cancel</button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <p><strong>Full Name:</strong> {userData.fullName}</p>
-            <p><strong>Email:</strong> {userData.email}</p>
-            <button className="edit-btn" onClick={() => setIsEditingProfile(true)}>Edit Profile</button>
-          </>
-        )}
-      </div>
+    <div className="page-container" style={pageStyles}>
+      {/* --- CORRECTED: JSX structure now matches the CSS layout --- */}
+      <div className="profile-layout">
+        <aside className="profile-sidenav">
+          <nav>
+            <ul className="sidenav-list">
+              <li><button onClick={() => scrollToSection('details')}>Account Details</button></li>
+              <li><button onClick={() => scrollToSection('addresses')}>Saved Addresses</button></li>
+              <li><button onClick={() => scrollToSection('orders')}>My Orders</button></li>
+              <li className="sidenav-divider"></li>
+              <li><button onClick={userLogout} className="sidenav-logout-btn">Logout</button></li>
+            </ul>
+          </nav>
+        </aside>
 
-      <div className="profile-section">
-        <h2>Saved Addresses</h2>
-        <ul className="address-list">
-          {addresses.map(addr => (
-            <li key={addr.id} className="address-item">
-              {editingAddressId === addr.id ? (
-                <div className="address-form">
-                    <input value={addressForm.streetAddress} onChange={e => setAddressForm({...addressForm, streetAddress: e.target.value})} placeholder="Street"/>
-                    <input value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} placeholder="City"/>
-                    {/* Add other fields as needed */}
-                    <div className="form-actions">
-                        <button onClick={() => handleAddressUpdate(addr.id)}>Save</button>
-                        <button onClick={() => setEditingAddressId(null)}>Cancel</button>
-                    </div>
+        <main className="profile-content">
+          <h1 className="main-title">Your Profile</h1>
+          
+          <section ref={sections.details} className="profile-section">
+            <h2 className="section-title">Account Details</h2>
+            {isEditingProfile ? (
+              <form onSubmit={handleProfileUpdate} className="profile-form">
+                <input
+                  type="text"
+                  value={profileForm.fullName}
+                  onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
+                />
+                <div className="form-actions">
+                  <button type="submit" className="btn-primary">Save Changes</button>
+                  <button type="button" className="btn-secondary" onClick={() => setIsEditingProfile(false)}>Cancel</button>
                 </div>
-              ) : (
-                <>
-                  <p>{addr.streetAddress}, {addr.city}, {addr.state}</p>
-                  <div className="address-actions">
-                    <button onClick={() => startEditingAddress(addr)}>Edit</button>
-                    <button onClick={() => handleAddressDelete(addr.id)}>Delete</button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
+              </form>
+            ) : (
+              <div className="details-view">
+                <div className="detail-item"><span>Full Name</span><span>{userData.fullName}</span></div>
+                <div className="detail-item"><span>Email</span><span>{userData.email}</span></div>
+                <button className="edit-btn" onClick={() => setIsEditingProfile(true)}>Edit Profile</button>
+              </div>
+            )}
+          </section>
 
-      <div className="profile-section">
-        <button onClick={userLogout} className="logout-button">Logout</button>
+          <section ref={sections.addresses} className="profile-section">
+            <h2 className="section-title">Saved Addresses</h2>
+            <ul className="address-list">
+              {addresses.map(addr => (
+                <li key={addr.id} className="address-item">
+                  {editingAddressId === addr.id ? (
+                    <form className="address-form" onSubmit={(e) => { e.preventDefault(); handleAddressUpdate(addr.id); }}>
+                      <input value={addressForm.fullName || ''} onChange={e => setAddressForm({...addressForm, fullName: e.target.value})} placeholder="Full Name"/>
+                      <input value={addressForm.streetAddress || ''} onChange={e => setAddressForm({...addressForm, streetAddress: e.target.value})} placeholder="Street Address"/>
+                      <div className="form-row">
+                        <input value={addressForm.city || ''} onChange={e => setAddressForm({...addressForm, city: e.target.value})} placeholder="City"/>
+                        <input value={addressForm.state || ''} onChange={e => setAddressForm({...addressForm, state: e.target.value})} placeholder="State"/>
+                      </div>
+                      <div className="form-actions">
+                        <button type="submit" className="btn-primary">Save</button>
+                        <button type="button" className="btn-secondary" onClick={() => setEditingAddressId(null)}>Cancel</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="address-view">
+                      <div>
+                        <p className="address-name">{addr.fullName}</p>
+                        <p className="address-details">{addr.streetAddress}, {addr.city}, {addr.state}</p>
+                      </div>
+                      <div className="address-actions">
+                        <button onClick={() => startEditingAddress(addr)}>Edit</button>
+                        <button onClick={() => handleAddressDelete(addr.id)} className="btn-delete">Delete</button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section ref={sections.orders} className="profile-section">
+            <h2 className="section-title">My Orders</h2>
+            <div className="order-history-list">
+              {orders.length > 0 ? (
+                orders.map(order => (
+                  <div key={order.id} className="order-item">
+                    <div className="order-summary">
+                      <div>
+                        <p className="order-id">Order #{order.id}</p>
+                        <p className="order-date">{new Date(order.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <p className="order-total">₹{order.totalPrice}</p>
+                      <span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span>
+                    </div>
+                    <div className="order-details">
+                      <p><strong>Items:</strong> {order.items.map(item => item.Product.name).join(', ')}</p>
+                      {order.status === 'Pending' && (
+                        <button
+                          onClick={() => handleCancelOrder(order.id)}
+                          className="cancel-order-btn"
+                        >
+                          Cancel Order
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p>You haven't placed any orders yet.</p>
+              )}
+            </div>
+          </section>
+        </main>
       </div>
     </div>
   );

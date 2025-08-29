@@ -1,27 +1,23 @@
-import { Product, Category, Discount, Seller } from '@/models';
+import { Product, Category, Discount, Seller, StoreCustomization } from '@/models';
 import ProductClient from './ProductClient';
 import { Op } from 'sequelize';
+import { sequelize } from '@/lib/db';
 
-// This server component fetches data for a specific product within a specific store
 export default async function ProductDetailPage({ params }) {
   const { slug, productSlug } = params;
   const today = new Date();
 
-  // Find the product, ensuring it belongs to the correct store, and include active discounts
-  const product = await Product.findOne({
-    where: { slug: productSlug },
-    include: [
-      {
-        model: Seller,
-        where: { storeSlug: slug },
-        attributes: [], // We only use this to filter, not to get seller data
-      },
-      {
-        model: Category,
-        as: 'category',
-        attributes: ['id', 'name'],
-        include: [
-          {
+  // Fetch product and customization settings in parallel
+  const [product, customization] = await Promise.all([
+    Product.findOne({
+      where: { slug: productSlug },
+      include: [
+        { model: Seller, where: { storeSlug: slug }, attributes: [] },
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name'],
+          include: [{
             model: Discount,
             as: 'Discounts',
             where: {
@@ -30,37 +26,42 @@ export default async function ProductDetailPage({ params }) {
             },
             required: false,
             attributes: ['percentage'],
-          },
-        ],
-      },
-      {
-        model: Discount,
-        as: 'Discounts',
-        where: {
-          startDate: { [Op.lte]: today },
-          endDate: { [Op.gte]: today },
+          }],
         },
-        required: false,
-        attributes: ['percentage'],
-      },
-    ],
-  });
+        {
+          model: Discount,
+          as: 'Discounts',
+          where: {
+            startDate: { [Op.lte]: today },
+            endDate: { [Op.gte]: today },
+          },
+          required: false,
+          attributes: ['percentage'],
+        },
+      ],
+    }),
+    StoreCustomization.findOne({
+      include: [{
+        model: Seller,
+        where: { storeSlug: slug },
+        attributes: [],
+      }],
+    })
+  ]);
 
   if (!product) {
     return <div className="p-6 text-red-600">Product not found in this store.</div>;
   }
 
-  // Calculate the final discount and discounted price
+  // Calculate discount (logic remains the same)
   const prodDiscount = product.Discounts?.[0]?.percentage || 0;
   const catDiscount = product.category?.Discounts?.[0]?.percentage || 0;
   const finalDiscount = Math.max(prodDiscount, catDiscount);
-
   const basePrice = product.pricePerKg ?? product.pricePerUnit;
   const discountedPrice = finalDiscount
     ? parseFloat((basePrice * (1 - finalDiscount / 100)).toFixed(2))
     : null;
 
-  // Create a clean, enriched product object to pass to the client
   const enrichedProduct = {
     id: product.id,
     title: product.name,
@@ -71,16 +72,16 @@ export default async function ProductDetailPage({ params }) {
     pricePerKg: product.pricePerKg,
     pricePerUnit: product.pricePerUnit,
     unitLabel: product.unitLabel,
-    isAvailable: product.isAvailable,
     finalDiscount,
     discountedPrice,
   };
 
-  // Pass the store slug and the enriched product object to the client
+  // Pass all necessary data to the client component
   return (
     <ProductClient
       product={JSON.parse(JSON.stringify(enrichedProduct))}
       storeSlug={slug}
+      customization={JSON.parse(JSON.stringify(customization))}
     />
   );
 }
