@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import '../homepage.css'; // Assuming homepage.css is in src/app/
+import '../homepage.css';
 
 export default function StorefrontPage() {
   const [products, setProducts] = useState([]);
@@ -11,6 +11,7 @@ export default function StorefrontPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [categories, setCategories] = useState([]);
   const [productsByCategory, setProductsByCategory] = useState({});
+  const [customization, setCustomization] = useState(null); // State for theme
   const [error, setError] = useState(null);
 
   const router = useRouter();
@@ -22,8 +23,11 @@ export default function StorefrontPage() {
 
     async function fetchStoreData() {
       try {
-        const productRes = await fetch(`/api/store/${storeSlug}/products`);
-        const categoryRes = await fetch(`/api/store/${storeSlug}/categories`);
+        const [productRes, categoryRes, customRes] = await Promise.all([
+          fetch(`/api/store/${storeSlug}/products`),
+          fetch(`/api/store/${storeSlug}/categories`),
+          fetch(`/api/store/${storeSlug}/customization`),
+        ]);
 
         if (!productRes.ok) {
           throw new Error(`Store "${storeSlug}" not found.`);
@@ -31,9 +35,11 @@ export default function StorefrontPage() {
 
         const productData = await productRes.json();
         const categoryData = await categoryRes.json();
+        const customData = await customRes.json();
         
         setProducts(productData);
         setCategories(categoryData);
+        setCustomization(customData); // Save the theme settings
 
         const shuffled = [...productData].sort(() => 0.5 - Math.random());
         setFeatured(shuffled.slice(0, 10));
@@ -47,7 +53,6 @@ export default function StorefrontPage() {
         setProductsByCategory(byCat);
 
       } catch (err) {
-        console.error("Failed to fetch store data:", err.message);
         setError(err.message);
       }
     }
@@ -55,30 +60,45 @@ export default function StorefrontPage() {
     fetchStoreData();
   }, [storeSlug]);
 
+  useEffect(() => {
+    if (customization) {
+      document.body.style.backgroundColor = customization.backgroundColor;
+    }
+    // Cleanup function to reset the background color when leaving the page
+    return () => {
+      document.body.style.backgroundColor = ''; // Resets to default
+    };
+  }, [customization]);
+
   const handleOrderNow = (product) => {
     router.push(`/${storeSlug}/product/${product.slug}`);
   };
 
-  const handleLeft = () => {
-    setCurrentIndex((prev) => Math.max(prev - 1, 0));
-  };
-
+  const handleLeft = () => setCurrentIndex((prev) => Math.max(prev - 1, 0));
   const handleRight = () => {
     const maxIndex = Math.max(0, featured.length - 4);
     setCurrentIndex((prev) => Math.min(prev + 1, maxIndex));
   };
 
-  if (error) {
-    return <div className="text-center p-10 text-red-500 font-bold">{error}</div>;
-  }
+  if (error) return <div className="text-center p-10 text-red-500 font-bold">{error}</div>;
+  if (!products.length || !customization) return <div className="text-center p-10">Loading Store...</div>;
 
-  if (!products.length && !error) {
-    return <div className="text-center p-10">Loading Store...</div>;
-  }
+  // Apply fetched settings as CSS variables to the main container
+  const storeStyles = {
+    '--store-background-color': customization.backgroundColor,
+    '--store-primary-color': customization.primaryColor,
+  };
 
   return (
-    <main className="home-container">
-      <div className="banner"><img src={'/image.png'} className="banner-img" alt="Store Banner"/></div>
+    <main className="home-container" style={storeStyles}>
+      <div className="banner">
+        <img 
+          src={customization.bannerImageUrl || '/image.png'} 
+          className="banner-img" 
+          alt="Store Banner"
+          onError={(e) => { e.target.src = '/image.png'; }} // Fallback if the image fails
+        />
+      </div>
 
       <div className="featured-section">
         <div className="carousel-container">
@@ -109,12 +129,10 @@ export default function StorefrontPage() {
         </div>
       </div>
 
-      {/* CATEGORIES LIST */}
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">Our Categories</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {categories.map((cat) => (
-            // ✅ FIX: Wrapped the entire category card in a Link component
             <Link key={cat.id} href={`/${storeSlug}/categories?category=${encodeURIComponent(cat.name)}`}>
               <div className="border rounded-xl shadow-md p-4 text-center hover:shadow-lg cursor-pointer bg-white h-full">
                 <img src={cat.image || '/category-placeholder.png'} alt={cat.name} className="w-full h-24 object-cover rounded mb-2" />
@@ -125,7 +143,6 @@ export default function StorefrontPage() {
         </div>
       </section>
 
-      {/* PRODUCTS BY CATEGORY */}
       {categories.map((cat) => {
         const catProducts = productsByCategory[cat.name] || [];
         if (catProducts.length === 0) return null;
@@ -135,7 +152,8 @@ export default function StorefrontPage() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">{cat.name}</h2>
               <Link href={`/${storeSlug}/categories?category=${encodeURIComponent(cat.name)}`}>
-                <button className="mt-2 bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">
+                {/* REMOVED INLINE CLASSES - will be styled from CSS file */}
+                <button className="view-all-btn">
                   View All
                 </button>
               </Link>
@@ -144,7 +162,6 @@ export default function StorefrontPage() {
               {randomSample.map((product) => {
                 const basePrice = parseFloat(product.pricePerKg ?? product.pricePerUnit ?? 0);
                 const discountedPrice = product.discountedPrice ? parseFloat(product.discountedPrice) : null;
-
                 return (
                   <div key={product.id} className="product-card">
                     <img src={product.image || '/no-image.jpg'} alt={product.name} className="product-img" />
@@ -160,7 +177,8 @@ export default function StorefrontPage() {
                         <>₹{basePrice.toFixed(2)}</>
                       )}
                     </p>
-                    <button className="mt-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700" onClick={() => handleOrderNow(product)}>
+                    {/* REMOVED INLINE CLASSES - will be styled from CSS file */}
+                    <button className="order-now-card-btn" onClick={() => handleOrderNow(product)}>
                       Order Now
                     </button>
                   </div>

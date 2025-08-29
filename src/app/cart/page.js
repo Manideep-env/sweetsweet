@@ -10,16 +10,57 @@ export default function CartPage() {
   const router = useRouter();
   
   const [total, setTotal] = useState(0);
-  const [form, setForm] = useState({
-    firstName: '', lastName: '', phone: '',
-    street: '', apartment: '', landmark: '',
-    city: '', state: '', zip: '', country: '',
-  });
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
 
+  // Updated form state to match the Address model
+  const [form, setForm] = useState({
+    fullName: '',
+    phoneNumber: '',
+    streetAddress: '',
+    city: '',
+    state: '',
+    postalCode: '',
+  });
+  
+  // This function fetches user status and their addresses
+  const fetchUserAndAddresses = async () => {
+    try {
+      const userRes = await fetch('/api/user/verify');
+      if (!userRes.ok) throw new Error('Not logged in');
+      const userData = await userRes.json();
+      
+      setIsUserLoggedIn(true);
+      setForm(prev => ({ ...prev, fullName: userData.fullName || '' }));
+
+      const addrRes = await fetch('/api/user/addresses');
+      const addresses = await addrRes.json();
+      
+      setSavedAddresses(addresses);
+      if (addresses.length > 0) {
+        // Automatically select the default address or the first one
+        const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
+        setSelectedAddressId(defaultAddress.id.toString());
+        setShowNewAddressForm(false); // Hide form if addresses exist
+      } else {
+        setShowNewAddressForm(true); // Show form if user has no saved addresses
+      }
+    } catch (error) {
+      setIsUserLoggedIn(false);
+      setShowNewAddressForm(true); // Always show form for guests
+    }
+  };
+
+  useEffect(() => {
+    fetchUserAndAddresses();
+  }, []);
+
+  // Recalculates total when the cart changes
   useEffect(() => {
     const totalPrice = cart.reduce((sum, item) => {
       let itemTotal = 0;
-      // ✅ FIX 1: Ensure prices are numbers before multiplication
       if (item.weight && item.pricePerKg) {
         itemTotal = parseFloat(item.weight) * parseFloat(item.pricePerKg);
       } else if (item.quantity && item.pricePerUnit) {
@@ -34,23 +75,33 @@ export default function CartPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Handles saving a new address for a logged-in user
+  const handleAddNewAddress = async (e) => {
+    e.preventDefault();
+    const res = await fetch('/api/user/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+    });
+
+    if (res.ok) {
+        alert('Address saved successfully!');
+        // After saving, refetch addresses to update the dropdown
+        fetchUserAndAddresses();
+    } else {
+        alert('Failed to save address. Please check all fields.');
+    }
+  };
+
+  // Handles the final order submission
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (!storeSlug) {
-      alert("Error: Store information is missing. Please add an item to your cart first.");
+      alert("Error: Store information is missing.");
       return;
     }
 
-    const customerName = `${form.firstName} ${form.lastName}`;
-    const address = `${form.street}, ${form.apartment || ''}, ${form.landmark || ''}, ${form.city}, ${form.state} - ${form.zip}, ${form.country}`;
-
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customerName,
-        phoneNumber: form.phone,
-        address,
+    let orderPayload = {
         items: cart.map(item => ({ 
             productId: item.id,
             slug: item.slug, 
@@ -58,7 +109,20 @@ export default function CartPage() {
             weight: item.weight 
         })),
         storeSlug: storeSlug,
-      }),
+    };
+
+    // If logged in and using a saved address, send the ID
+    if (isUserLoggedIn && !showNewAddressForm && selectedAddressId) {
+        orderPayload.shippingAddressId = parseInt(selectedAddressId, 10);
+    } else {
+    // Otherwise, send the full address object from the form
+        orderPayload.shippingAddress = form;
+    }
+
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderPayload),
     });
 
     if (res.ok) {
@@ -72,6 +136,38 @@ export default function CartPage() {
     }
   };
 
+  const cartTable = (
+    <table className="cart-table">
+        <thead>
+            <tr>
+                <th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {cart.map((item) => {
+                let unitPrice = parseFloat(item.pricePerKg ?? item.pricePerUnit ?? 0);
+                let itemTotal = 0;
+                if (item.weight && item.pricePerKg) {
+                    itemTotal = parseFloat(item.weight) * unitPrice;
+                } else if (item.quantity && item.pricePerUnit) {
+                    itemTotal = parseInt(item.quantity) * unitPrice;
+                }
+                return (
+                    <tr key={item.id}>
+                        <td>{item.name}</td>
+                        <td>{item.weight ? `${item.weight} kg` : item.quantity}</td>
+                        <td>₹{unitPrice.toFixed(2)}</td>
+                        <td>₹{itemTotal.toFixed(2)}</td>
+                        <td>
+                            <button className="remove-btn" onClick={() => removeFromCart(item.id)}>✖</button>
+                        </td>
+                    </tr>
+                );
+            })}
+        </tbody>
+    </table>
+  );
+
   return (
     <div className="cart-container">
       <h1>Your Cart</h1>
@@ -79,78 +175,51 @@ export default function CartPage() {
         <p>Your cart is empty.</p>
       ) : (
         <>
-          <table className="cart-table">
-            <thead>
-              <tr>
-                <th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cart.map((item) => {
-                // ✅ FIX 2: Convert the unit price to a number immediately
-                let unitPrice = parseFloat(item.pricePerKg ?? item.pricePerUnit ?? 0);
-                
-                let itemTotal = 0;
-                if (item.weight && item.pricePerKg) {
-                  itemTotal = parseFloat(item.weight) * parseFloat(item.pricePerKg);
-                } else if (item.quantity && item.pricePerUnit) {
-                  itemTotal = parseInt(item.quantity) * parseFloat(item.pricePerUnit);
-                }
-
-                return (
-                  <tr key={item.id}>
-                    <td>
-                      <div className="cart-item-info">
-                        <img src={item.image || '/no-image.jpg'} alt={item.name} />
-                        <div>
-                          <strong>{item.name}</strong>
-                          <p>{item.category?.name || ''}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      {item.weight ? `${item.weight} kg` : item.quantity}
-                    </td>
-                    <td>
-                      {/* This will now work correctly */}
-                      ₹{unitPrice.toFixed(2)}
-                    </td>
-                    <td>₹{itemTotal.toFixed(2)}</td>
-                    <td>
-                      <button className="remove-btn" onClick={() => removeFromCart(item.id)}>✖</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          <div className="cart-summary">
-            <h3>Total: ₹{total.toFixed(2)}</h3>
-          </div>
+          {cartTable}
+          <div className="cart-summary"><h3>Total: ₹{total.toFixed(2)}</h3></div>
 
           <h2>Shipping Details</h2>
           <form className="checkout-form" onSubmit={handleCheckout}>
-             {/* Form inputs remain the same */}
-            <div className="form-row">
-              <input name="firstName" placeholder="First Name" onChange={handleChange} required />
-              <input name="lastName" placeholder="Last Name" onChange={handleChange} required />
-            </div>
-            <div className="form-row">
-              <input name="phone" placeholder="Phone" type="tel" onChange={handleChange} required />
-            </div>
-            <input name="street" placeholder="Street Address" onChange={handleChange} required />
-            <input name="apartment" placeholder="Apartment/Suite" onChange={handleChange} />
-            <input name="landmark" placeholder="Landmark" onChange={handleChange} />
-            <div className="form-row">
-              <input name="city" placeholder="City" onChange={handleChange} required />
-              <input name="state" placeholder="State" onChange={handleChange} required />
-            </div>
-            <div className="form-row">
-              <input name="zip" placeholder="Zip Code" onChange={handleChange} required />
-              <input name="country" placeholder="Country" onChange={handleChange} required />
-            </div>
-            <button type="submit" className="checkout-btn">Place Order</button>
+            {isUserLoggedIn && savedAddresses.length > 0 && (
+              <div className="address-management">
+                <div className="address-selector">
+                  <label>Select Address:</label>
+                  <select value={selectedAddressId} onChange={(e) => setSelectedAddressId(e.target.value)}>
+                    {savedAddresses.map(addr => (
+                      <option key={addr.id} value={addr.id}>
+                        {addr.streetAddress}, {addr.city} {addr.isDefault ? '(Default)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button type="button" className="toggle-address-form-btn" onClick={() => setShowNewAddressForm(!showNewAddressForm)}>
+                  {showNewAddressForm ? 'Cancel' : 'Add New Address'}
+                </button>
+              </div>
+            )}
+
+            {showNewAddressForm && (
+              <div className="new-address-form">
+                <h3>{isUserLoggedIn ? 'Add a New Address' : 'Enter Shipping Details'}</h3>
+                <input name="fullName" value={form.fullName} placeholder="Full Name" onChange={handleChange} required />
+                <input name="phoneNumber" value={form.phoneNumber} placeholder="Phone Number" type="tel" onChange={handleChange} required />
+                <input name="streetAddress" value={form.streetAddress} placeholder="Street Address" onChange={handleChange} required />
+                <div className="form-row">
+                  <input name="city" value={form.city} placeholder="City" onChange={handleChange} required />
+                  <input name="state" value={form.state} placeholder="State" onChange={handleChange} required />
+                </div>
+                <input name="postalCode" value={form.postalCode} placeholder="Postal Code" onChange={handleChange} required />
+                
+                {isUserLoggedIn && (
+                  <button type="button" className="save-address-btn" onClick={handleAddNewAddress}>Save Address</button>
+                )}
+              </div>
+            )}
+            
+            {/* Show place order button if not currently adding a new address OR if user is a guest */}
+            {(!showNewAddressForm || !isUserLoggedIn) && (
+              <button type="submit" className="checkout-btn">Place Order</button>
+            )}
           </form>
         </>
       )}

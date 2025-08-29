@@ -1,62 +1,117 @@
+/* src/components/Navbar/Navbar.css */
+
+/* --- Main Navbar Container --- */
 .navbar {
-  background-color: #ffffff;
-  color: #000000;
-  padding: 1rem;
-  display: flex;
+  margin-top: 16px; /* Space from the top of the viewport */
+  z-index: 50;
+
+  /* Sizing and Shape */
+  width: 100%;
+  height: 72px;
+  border-radius: 9999px; /* This creates the pill shape */
+
+  /* Appearance */
+  background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
+  backdrop-filter: blur(10px); /* Frosted glass effect */
+  -webkit-backdrop-filter: blur(10px); /* Safari support */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); /* Deeper shadow for floating look */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+
+  /* Internal Layout */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 1.5rem;
-  border-bottom: 1px solid #ffffff;
+  padding: 0 16px;
+  gap: 20px;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* --- Section Alignment --- */
+.navbar-left, .navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.navbar-left { justify-content: flex-start; padding-left: 16px; }
+.navbar-center { display: flex; justify-content: center; }
+.navbar-right { justify-content: flex-end; padding-right: 16px; }
+
+/* --- Store Name / Logo --- */
+.store-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: #1a202c;
+  letter-spacing: -0.5px;
+}
+
+/* --- General Link Styling --- */
 .navbar a {
   text-decoration: none;
-  color: #000000;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  transition: background 0.3s ease;
+  color: #4a5568;
+  padding: 10px 16px;
+  border-radius: 9999px; /* Pill shape for links */
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  font-size: 0.95rem;
+  border: none;
 }
 
 .navbar a:hover {
   background-color: #f0f0f0;
+  color: #1a202c;
 }
 
-.navbar button {
-  background-color: #ffdddd;
-  border: none;
-  color: #000000;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.3s ease;
+/* --- Active Link Styling --- */
+.navbar a.active {
+  color: var(--store-primary-color, #1a202c);
+  font-weight: 600;
+  background-color: #f0f0f0;
 }
 
-.navbar button:hover {
-  background-color: #ffcccc;
-}
-
-/* Navbar.css */
-.navbar {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  gap: 16px;
-}
-
+/* --- Right-Side Icons & Links --- */
 .cart-icon {
-  font-size: 24px;
+  font-size: 26px;
   position: relative;
 }
 
-.cart-badge {
+.cart-count {
   position: absolute;
-  top: -4px;
-  right: -8px;
-  background-color: red;
+  top: 4px;
+  right: 2px;
+  background-color: var(--store-primary-color, #ef4444);
   color: white;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 9999px;
-  font-weight: bold;
+  font-size: 11px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+.profile-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #e2e8f0;
+}
+
+.login-link {
+  background-color: #1a202c;
+  color: white;
+  font-weight: 600;
+}
+
+.login-link:hover {
+  background-color: #374151;
+  color: white;
+}
+
+/* --- Profile Link (from previous context) --- */
+.profile-link span {
+  font-weight: 500;
 }

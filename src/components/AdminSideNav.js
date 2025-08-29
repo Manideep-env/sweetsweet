@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import './AdminSideNav.css'; // Adjust path as needed
+import './AdminSideNav.css';
 
 const links = [
   { href: '/admin', label: 'Dashboard' },
@@ -11,7 +11,7 @@ const links = [
   { href: '/admin/add-product', label: 'Add new Product' },
   { href: '/admin/add-category', label: 'Add new Category' },
   { href: '/admin/discount', label: 'Discounts' },
-  { href: '/admin/users', label: 'Users list' },
+  { href: '/admin/customization', label: 'Customization' }, // <-- New Link
   { href: '/admin/invoice', label: 'Invoice' },
 ];
 

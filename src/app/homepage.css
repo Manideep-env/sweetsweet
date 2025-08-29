@@ -1,15 +1,15 @@
 /* Global container */
 .home-container {
-  padding: 2rem;
-  max-width: 1280px;
+  padding: 5rem;
+  max-width: 100%;
   margin: 0 auto;
+  background-color: var(--store-background-color, #ffffff); /* Use variable with a white fallback */
 }
 
 /* Banner */
 .banner {
   width: 100%;
-  margin-bottom: 2rem;
-  text-align: center;
+  margin-bottom: 5rem;
 }
 .banner-img {
   max-width: 100%;
@@ -48,7 +48,6 @@
   flex-shrink: 0;
 }
 
-/* Carousel Buttons */
 .carousel-btn {
   background-color: #e2e8f0;
   border: none;
@@ -62,7 +61,6 @@
   background-color: #cbd5e1;
 }
 
-/* Image Wrapper */
 .img-wrapper {
   position: relative;
   margin-bottom: 1rem;
@@ -77,7 +75,7 @@
 .badge-dot {
   width: 10px;
   height: 10px;
-  background-color: #34d399; /* green */
+  background-color: #34d399;
   border-radius: 50%;
   position: absolute;
   bottom: 8px;
@@ -85,7 +83,6 @@
   border: 2px solid white;
 }
 
-/* Product text */
 .product-name {
   font-weight: bold;
   margin-bottom: 0.5rem;
@@ -96,18 +93,18 @@
   font-weight: 500;
 }
 
-/* Order Now Button */
+/* Order Now Button in Carousel */
 .order-now-btn {
-  background-color: #10b981;
+  background-color: var(--store-primary-color, #10b981); /* Use variable */
   color: white;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 9999px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: opacity 0.3s;
 }
 .order-now-btn:hover {
-  background-color: #059669;
+  opacity: 0.9;
 }
 .arrow {
   margin-left: 0.3rem;
@@ -130,4 +127,23 @@
   height: 150px;
   object-fit: cover;
   border-radius: 8px;
+}
+
+/* --- THEMED BUTTONS --- */
+.view-all-btn, .order-now-card-btn {
+  background-color: var(--store-primary-color, #2563eb); /* Use variable with a blue fallback */
+  color: white;
+  padding: 4px 16px;
+  border-radius: 6px;
+  transition: opacity 0.3s;
+  border: none;
+  cursor: pointer;
+}
+
+.order-now-card-btn {
+    margin-top: 8px;
+}
+
+.view-all-btn:hover, .order-now-card-btn:hover {
+  opacity: 0.9;
 }

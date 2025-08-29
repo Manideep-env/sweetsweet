@@ -1,22 +1,36 @@
 // src/app/api/admin/orders/route.js
-import { Order, OrderItem, Product } from '@/models';
 import { NextResponse } from 'next/server';
-import { getSellerFromToken } from '@/lib/get-seller-from-token';
+import { sequelize } from '@/lib/db';
+import { Order, OrderItem, Product, User, Address } from '@/models';
+import { verifyToken } from '@/lib/auth';
+import { cookies } from 'next/headers';
 
-export async function GET(req) {
-  const seller = await getSellerFromToken(req);
-  if (!seller) {
+export async function GET() {
+  const cookieStore = cookies();
+  const token = cookieStore.get('token')?.value; // Admin/Seller token
+
+  if (!token) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    const decoded = await verifyToken(token);
+    await sequelize.sync();
+
     const orders = await Order.findAll({
-      where: { sellerId: seller.sellerId }, // DATA ISOLATION
+      where: { sellerId: decoded.sellerId },
       include: [
         {
           model: OrderItem,
           as: 'items',
-          include: [{ model: Product, attributes: ['name'] }], // Only include name
+          include: [{ model: Product, attributes: ['name'] }],
+        },
+        {
+          model: User, // Include the User who placed the order
+          attributes: ['fullName', 'email'],
+        },
+        {
+          model: Address, // Include the shipping address
         },
       ],
       order: [['createdAt', 'DESC']],
@@ -24,7 +38,7 @@ export async function GET(req) {
 
     return NextResponse.json(orders);
   } catch (error) {
-    console.error('[ADMIN_ORDER_FETCH_ERROR]', error);
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+    console.error('[ADMIN_ORDERS_GET_ERROR]', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
