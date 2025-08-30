@@ -35,6 +35,8 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "cypress": "^15.0.0",
+    "cypress-mochawesome-reporter": "^4.0.2",
     "eslint": "^9",
     "eslint-config-next": "15.4.1",
     "tailwindcss": "^4"
