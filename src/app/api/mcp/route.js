@@ -5,7 +5,7 @@ import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 export async function POST(req) {
   const { jsonrpc, method, params, id } = await req.json();
-  
+
   // Handle params as either object or JSON string
   let parsedParams = params;
   if (typeof params === 'string') {
@@ -16,13 +16,13 @@ export async function POST(req) {
       parsedParams = {};
     }
   }
-  
+
   const { sellerId } = parsedParams;
 
   if (!sellerId) {
     return NextResponse.json({ error: 'Seller ID not provided to tool.' }, { status: 400 });
   }
-  
+
   try {
     let result;
 
@@ -34,7 +34,7 @@ export async function POST(req) {
           where: { sellerId, createdAt: { [Op.between]: [todayStart, todayEnd] } },
         });
         const pendingOrders = await Order.count({
-          where: { sellerId, status: 'pending' },
+          where: { sellerId, status: 'Pending' }, // CORRECTED: Changed 'pending' to 'Pending'
         });
         result = { totalOrdersToday, pendingOrders };
         break;
@@ -56,7 +56,7 @@ export async function POST(req) {
         });
         result = categories.length > 0 ? categories : [];
         break;
-        
+
 
       case 'get_products_by_category':
         const { category_name } = parsedParams;
@@ -65,14 +65,14 @@ export async function POST(req) {
           break;
         }
         const products = await Product.findAll({
-            where: { sellerId },
-            attributes: ['name'],
-            include: [{
-                model: Category,
-                as: 'category',
-                where: { name: category_name, sellerId },
-                attributes: [] 
-            }]
+          where: { sellerId },
+          attributes: ['name'],
+          include: [{
+            model: Category,
+            as: 'category',
+            where: { name: category_name, sellerId },
+            attributes: []
+          }]
         });
         result = products.length > 0 ? products.map(p => p.name) : [];
         break;
@@ -82,7 +82,7 @@ export async function POST(req) {
         const orderLimit = Math.min(Math.max(parseInt(limit) || 5, 1), 50); // Limit between 1 and 50
         const recentOrders = await Order.findAll({
           where: { sellerId },
-          attributes: ['id', 'status', 'totalAmount', 'createdAt'],
+          attributes: ['id', 'status', 'totalPrice', 'createdAt'],
           order: [['createdAt', 'DESC']],
           limit: orderLimit,
           include: [{
@@ -98,7 +98,7 @@ export async function POST(req) {
         result = recentOrders.length > 0 ? recentOrders.map(order => ({
           id: order.id,
           status: order.status,
-          totalAmount: order.totalAmount,
+          totalAmount: order.totalPrice,
           createdAt: order.createdAt,
           items: order.items.map(item => ({
             productName: item.Product.name,
@@ -107,37 +107,25 @@ export async function POST(req) {
         })) : [];
         break;
 
-      case 'get_low_stock_products':
-        const { threshold = 10 } = parsedParams;
-        const stockThreshold = Math.max(parseInt(threshold) || 10, 0); // Ensure non-negative
-        const lowStockProducts = await Product.findAll({
-          where: { 
-            sellerId,
-            stock: { [Op.lte]: stockThreshold }
-          },
-          attributes: ['id', 'name', 'stock', 'price'],
-          order: [['stock', 'ASC']]
-        });
-        result = lowStockProducts.length > 0 ? lowStockProducts : [];
-        break;
+      // REMOVED: get_low_stock_products case was removed as 'stock' field does not exist on Product model.
 
       case 'get_revenue_stats':
-        const sevenDaysAgo = subDays(new Date(), 7);
+        const sevenDaysAgoRev = subDays(new Date(), 7);
         const revenueStats = await Order.findAll({
-          where: { 
+          where: {
             sellerId,
-            status: 'completed',
-            createdAt: { [Op.gte]: sevenDaysAgo }
+            status: 'Delivered', // CORRECTED: Changed 'completed' to 'Delivered'
+            createdAt: { [Op.gte]: sevenDaysAgoRev }
           },
-          attributes: ['totalAmount', 'createdAt']
+          attributes: ['totalPrice', 'createdAt']
         });
-        
+
         const totalRevenue = revenueStats.reduce((sum, order) => {
-          const amount = parseFloat(order.totalAmount) || 0;
+          const amount = parseFloat(order.totalPrice) || 0;
           return sum + amount;
         }, 0);
         const averageOrderValue = revenueStats.length > 0 ? totalRevenue / revenueStats.length : 0;
-        
+
         result = {
           totalRevenue: totalRevenue.toFixed(2),
           averageOrderValue: averageOrderValue.toFixed(2),
@@ -149,7 +137,8 @@ export async function POST(req) {
       case 'get_discount_info':
         const activeDiscounts = await Discount.findAll({
           where: { sellerId },
-          attributes: ['id', 'name', 'discountPercentage', 'validFrom', 'validTo'],
+          // CORRECTED: Aligned attributes with Discount model
+          attributes: ['id', 'percentage', 'startDate', 'endDate'],
           include: [
             {
               model: Product,
@@ -163,13 +152,13 @@ export async function POST(req) {
             }
           ]
         });
-        
+
+        // CORRECTED: Mapped result to correct field names
         result = activeDiscounts.length > 0 ? activeDiscounts.map(discount => ({
           id: discount.id,
-          name: discount.name,
-          discountPercentage: discount.discountPercentage,
-          validFrom: discount.validFrom,
-          validTo: discount.validTo,
+          percentage: discount.percentage,
+          startDate: discount.startDate,
+          endDate: discount.endDate,
           productName: discount.Product?.name || null,
           categoryName: discount.Category?.name || null
         })) : [];
@@ -179,7 +168,7 @@ export async function POST(req) {
         const { days = 30 } = parsedParams;
         const daysLimit = Math.min(Math.max(parseInt(days) || 30, 1), 365); // Limit between 1 and 365 days
         const dateLimit = subDays(new Date(), daysLimit);
-        
+
         const popularProducts = await OrderItem.findAll({
           attributes: [
             'productId',
@@ -189,26 +178,28 @@ export async function POST(req) {
             {
               model: Product,
               where: { sellerId },
-              attributes: ['name', 'price']
+              // CORRECTED: Using existing price fields
+              attributes: ['name', 'pricePerUnit', 'pricePerKg']
             },
             {
               model: Order,
-              where: { 
+              where: {
                 createdAt: { [Op.gte]: dateLimit },
-                status: 'completed'
+                status: 'Delivered' // CORRECTED: Changed 'completed' to 'Delivered'
               },
               attributes: []
             }
           ],
-          group: ['productId', 'Product.id', 'Product.name', 'Product.price'],
+          group: ['productId', 'Product.id', 'Product.name', 'Product.pricePerUnit', 'Product.pricePerKg'],
           order: [[fn('SUM', col('quantity')), 'DESC']],
           limit: 10
         });
-        
+
         result = popularProducts.length > 0 ? popularProducts.map(item => ({
           productName: item.Product.name,
           totalSold: parseInt(item.dataValues.totalSold) || 0,
-          price: item.Product.price
+          // CORRECTED: Prioritizing pricePerUnit, falling back to pricePerKg
+          price: item.Product.pricePerUnit || item.Product.pricePerKg
         })) : [];
         break;
 
@@ -221,142 +212,131 @@ export async function POST(req) {
           ],
           group: ['status']
         });
-        
+
         result = orderStatuses.length > 0 ? orderStatuses.map(status => ({
           status: status.status,
           count: parseInt(status.dataValues.count)
         })) : [];
         break;
 
-                    case 'get_business_insights':
-         try {
-           const insights = [];
-           
-           // 1. Basic Revenue Analysis
-           const sevenDaysAgo = subDays(new Date(), 7);
-           const recentOrders = await Order.count({
-             where: { 
-               sellerId,
-               status: 'completed',
-               createdAt: { [Op.gte]: sevenDaysAgo }
-             }
-           });
-           
-           const totalRevenue = await Order.sum('totalAmount', {
-             where: { 
-               sellerId,
-               status: 'completed',
-               createdAt: { [Op.gte]: sevenDaysAgo }
-             }
-           });
-           
-           insights.push({
-             type: 'revenue_summary',
-             title: 'Recent Revenue Summary',
-             value: '$' + (totalRevenue || 0).toFixed(2),
-             description: `${recentOrders} orders completed in the last 7 days`,
-             recommendation: recentOrders > 0 ? 'Good sales activity! Keep up the momentum.' : 'Consider promotional campaigns to boost sales'
-           });
-           
-           // 2. Inventory Insights
-           const lowStockProducts = await Product.count({
-             where: { 
-               sellerId,
-               stock: { [Op.lte]: 10 }
-             }
-           });
-           
-           if (lowStockProducts > 0) {
-             insights.push({
-               type: 'inventory_alert',
-               title: 'Low Stock Alert',
-               value: lowStockProducts + ' products',
-               description: `${lowStockProducts} products are running low on stock`,
-               recommendation: 'Restock these items soon to avoid stockouts'
-             });
-           }
-           
-           // 3. Product Count
-           const totalProducts = await Product.count({
-             where: { sellerId }
-           });
-           
-           insights.push({
-             type: 'product_summary',
-             title: 'Product Catalog',
-             value: totalProducts + ' products',
-             description: `Total products in your catalog`,
-             recommendation: totalProducts < 10 ? 'Consider adding more products to increase variety' : 'Good product variety!'
-           });
-           
-           // 4. Category Count
-           const totalCategories = await Category.count({
-             where: { sellerId }
-           });
-           
-           insights.push({
-             type: 'category_summary',
-             title: 'Category Organization',
-             value: totalCategories + ' categories',
-             description: `Products organized into ${totalCategories} categories`,
-             recommendation: totalCategories < 3 ? 'Consider organizing products into more categories' : 'Well-organized product structure!'
-           });
-           
-           // 5. Pending Orders
-           const pendingOrders = await Order.count({
-             where: { 
-               sellerId,
-               status: 'pending'
-             }
-           });
-           
-           if (pendingOrders > 0) {
-             insights.push({
-               type: 'order_alert',
-               title: 'Pending Orders',
-               value: pendingOrders + ' orders',
-               description: `${pendingOrders} orders awaiting processing`,
-               recommendation: 'Process pending orders promptly to maintain customer satisfaction'
-             });
-           }
-           
-           result = {
-             insights: insights,
-             summary: {
-               totalInsights: insights.length,
-               criticalAlerts: insights.filter(i => i.type === 'inventory_alert' || i.type === 'order_alert').length,
-               positiveTrends: insights.filter(i => i.type === 'revenue_summary' && recentOrders > 0).length
-             },
-             generatedAt: new Date().toISOString()
-           };
-         } catch (insightError) {
-           console.error('Error in business insights:', insightError);
-           result = {
-             insights: [{
-               type: 'error',
-               title: 'Analysis Error',
-               value: 'Unable to generate insights',
-               description: 'There was an error processing the business data',
-               recommendation: 'Please try again later or contact support'
-             }],
-             summary: {
-               totalInsights: 1,
-               criticalAlerts: 0,
-               positiveTrends: 0
-             },
-             generatedAt: new Date().toISOString()
-           };
-         }
-         break;
+      case 'get_business_insights':
+        try {
+          const insights = [];
+
+          // 1. Basic Revenue Analysis
+          const sevenDaysAgo = subDays(new Date(), 7);
+          const recentOrders = await Order.count({
+            where: {
+              sellerId,
+              status: 'Delivered', // CORRECTED: Changed 'completed' to 'Delivered'
+              createdAt: { [Op.gte]: sevenDaysAgo }
+            }
+          });
+
+          const totalRevenueInsight = await Order.sum('totalPrice', {
+            where: {
+              sellerId,
+              status: 'Delivered', // CORRECTED: Changed 'completed' to 'Delivered'
+              createdAt: { [Op.gte]: sevenDaysAgo }
+            }
+          });
+
+          insights.push({
+            type: 'revenue_summary',
+            title: 'Recent Revenue Summary',
+            value: '$' + (totalRevenueInsight || 0).toFixed(2),
+            description: `${recentOrders} orders delivered in the last 7 days`,
+            recommendation: recentOrders > 0 ? 'Good sales activity! Keep up the momentum.' : 'Consider promotional campaigns to boost sales'
+          });
+
+          // REMOVED: Inventory insights section removed due to missing 'stock' field.
+
+          // 3. Product Count
+          const totalProductsInsight = await Product.count({
+            where: { sellerId }
+          });
+
+          insights.push({
+            type: 'product_summary',
+            title: 'Product Catalog',
+            value: totalProductsInsight + ' products',
+            description: `Total products in your catalog`,
+            recommendation: totalProductsInsight < 10 ? 'Consider adding more products to increase variety' : 'Good product variety!'
+          });
+
+          // 4. Category Count
+          const totalCategoriesInsight = await Category.count({
+            where: { sellerId }
+          });
+
+          insights.push({
+            type: 'category_summary',
+            title: 'Category Organization',
+            value: totalCategoriesInsight + ' categories',
+            description: `Products organized into ${totalCategoriesInsight} categories`,
+            recommendation: totalCategoriesInsight < 3 ? 'Consider organizing products into more categories' : 'Well-organized product structure!'
+          });
+
+          // 5. Pending Orders
+          const pendingOrdersInsight = await Order.count({
+            where: {
+              sellerId,
+              status: 'Pending' // CORRECTED: Changed 'pending' to 'Pending'
+            }
+          });
+
+          if (pendingOrdersInsight > 0) {
+            insights.push({
+              type: 'order_alert',
+              title: 'Pending Orders',
+              value: pendingOrdersInsight + ' orders',
+              description: `${pendingOrdersInsight} orders awaiting processing`,
+              recommendation: 'Process pending orders promptly to maintain customer satisfaction'
+            });
+          }
+
+          result = {
+            insights: insights,
+            summary: {
+              totalInsights: insights.length,
+              criticalAlerts: insights.filter(i => i.type === 'order_alert').length,
+              positiveTrends: insights.filter(i => i.type === 'revenue_summary' && recentOrders > 0).length
+            },
+            generatedAt: new Date().toISOString()
+          };
+        } catch (insightError) {
+          console.error('Error in business insights:', insightError);
+          result = {
+            insights: [{
+              type: 'error',
+              title: 'Analysis Error',
+              value: 'Unable to generate insights',
+              description: 'There was an error processing the business data',
+              recommendation: 'Please try again later or contact support'
+            }],
+            summary: {
+              totalInsights: 1,
+              criticalAlerts: 0,
+              positiveTrends: 0
+            },
+            generatedAt: new Date().toISOString()
+          };
+        }
+        break;
+
 
       default:
         return NextResponse.json({ error: { message: `Method '${method}' not found.` } }, { status: 404 });
     }
-    
+
+    console.log(`MCP method executed: ${method}`, { result });
+
+
     return NextResponse.json({
-        type: 'tool_result',
-        tool_use_id: id,
-        content: JSON.stringify(result),
+      role: "assistant",
+      type: "tool_result",
+      tool_use_id: id,
+      content: JSON.stringify(result),
     });
 
   } catch (error) {

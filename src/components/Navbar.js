@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { usePathname, useParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import './Navbar.css';
 
 const UserIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
     <circle cx="12" cy="7" r="4"></circle>
   </svg>
@@ -24,16 +24,15 @@ export default function Navbar() {
   const params = useParams();
   const { cart, storeSlug, setCurrentStore } = useCart();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  // Mount check to avoid hydration mismatch
+  useEffect(() => setIsMounted(true), []);
 
+  // Set store context from slug
   useEffect(() => {
-    if (params.slug) {
-      setCurrentStore(params.slug);
-    }
+    if (params.slug) setCurrentStore(params.slug);
   }, [params.slug, setCurrentStore]);
 
+  // Verify login state on route change
   useEffect(() => {
     fetch('/api/user/verify')
       .then(res => res.ok ? res.json() : Promise.reject())
@@ -47,43 +46,49 @@ export default function Navbar() {
       });
   }, [pathname]);
 
+  // Store customization & name fetch
   useEffect(() => {
-    // If on the main homepage, always show the brand name
     if (pathname === '/') {
       setStoreName('instantB2C');
-      setCustomization(null); // Clear theme on homepage
-    } else if (storeSlug) {
-      // If on a store page, fetch the store's name and theme
-      fetch(`/api/store/${storeSlug}`)
-        .then(res => res.ok ? res.json() : Promise.reject())
-        .then(data => setStoreName(data.storeName))
-        .catch(() => setStoreName(''));
-      
-      fetch(`/api/store/${storeSlug}/customization`)
-        .then(res => res.ok ? res.json() : null)
-        .then(setCustomization);
-    } else {
-      // Fallback for other non-store pages like /user/profile
-      setStoreName('instantB2C');
+      setCustomization(null);
+      return;
     }
-  }, [storeSlug, pathname]); 
+
+    if (!storeSlug) {
+      setStoreName('instantB2C'); 
+      setCustomization(null);
+      return;
+    }
+
+    // Could be combined into one API call later
+    fetch(`/api/store/${storeSlug}`)
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => setStoreName(data.storeName || 'instantB2C'))
+      .catch(() => setStoreName('instantB2C'));
+
+    fetch(`/api/store/${storeSlug}/customization`)
+      .then(res => res.ok ? res.json() : null)
+      .then(setCustomization)
+      .catch(() => setCustomization(null));
+  }, [storeSlug, pathname]);
 
   const itemCount = cart?.length || 0;
-  
+
+  // Memoized theme styles
+  const navStyles = useMemo(() => (
+    customization ? { '--store-primary-color': customization.primaryColor, '--store-bg-color': customization.backgroundColor } : {}
+  ), [customization]);
+
   if (!isMounted) {
     return <nav className="navbar" style={{ height: '72px', visibility: 'hidden' }}></nav>;
   }
 
-  // Apply fetched theme colors as CSS variables
-  const navStyles = customization ? { 
-    '--store-primary-color': customization.primaryColor,
-    '--store-background-color': customization.backgroundColor,
-  } : {};
-
   return (
     <nav className="navbar" style={navStyles}>
       <div className="navbar-left">
-        <Link href={storeSlug ? `/${storeSlug}` : "/"} className={pathname === `/${storeSlug}` || pathname === '/' ? 'active' : ''}>Home</Link>
+        <Link href={storeSlug ? `/${storeSlug}` : "/"} className={pathname === `/${storeSlug}` || pathname === '/' ? 'active' : ''}>
+          Home
+        </Link>
         {storeSlug && (
           <>
             <Link href={`/${storeSlug}/categories`} className={pathname.includes('/categories') ? 'active' : ''}>All Products</Link>
@@ -93,13 +98,17 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-center">
-        {storeName && <h1 className="store-name">{storeName}</h1>}
+        {storeName && (
+          <Link href={storeSlug ? `/${storeSlug}` : "/"} className="store-name">
+            {storeName}
+          </Link>
+        )}
       </div>
 
       <div className="navbar-right">
         {storeSlug && (
-          <Link href="/cart" className="cart-icon">
-            🛒
+          <Link href="/cart" className="cart-icon" aria-label="cart">
+            <span role="img" aria-hidden="true"><img src="/cart.png" alt="Cart" className="cart-png" /></span>
             {itemCount > 0 && <span className="cart-count">{itemCount}</span>}
           </Link>
         )}

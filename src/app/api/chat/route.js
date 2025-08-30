@@ -8,7 +8,7 @@ export async function POST(req) {
   if (!sellerPayload) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  
+
   // 2. Extract the secure sellerId and the messages
   const { sellerId } = sellerPayload;
   const { messages } = await req.json();
@@ -23,20 +23,20 @@ export async function POST(req) {
       },
     },
     {
-        type: 'function',
-        function: {
-          name: 'get_product_count',
-          description: 'Gets the total number of products in the store.',
-          parameters: { type: 'object', properties: {} },
-        },
+      type: 'function',
+      function: {
+        name: 'get_product_count',
+        description: 'Gets the total number of products in the store.',
+        parameters: { type: 'object', properties: {} },
+      },
     },
     {
-        type: 'function',
-        function: {
-          name: 'get_category_count',
-          description: 'Gets the total number of categories in the store.',
-          parameters: { type: 'object', properties: {} },
-        },
+      type: 'function',
+      function: {
+        name: 'get_category_count',
+        description: 'Gets the total number of categories in the store.',
+        parameters: { type: 'object', properties: {} },
+      },
     },
     {
       type: 'function',
@@ -47,18 +47,78 @@ export async function POST(req) {
       },
     },
     {
-        type: 'function',
-        function: {
-          name: 'get_products_by_category',
-          description: 'Gets a list of all products belonging to a specific category name.',
-          parameters: {
-            type: 'object',
-            properties: {
-                category_name: { type: 'string', description: 'The name of the category to search for, e.g., "Scented Candles"' }
-            },
-            required: ['category_name'],
+      type: 'function',
+      function: {
+        name: 'get_products_by_category',
+        description: 'Gets a list of all products belonging to a specific category name.',
+        parameters: {
+          type: 'object',
+          properties: {
+            category_name: { type: 'string', description: 'The name of the category to search for, e.g., "Scented Candles"' }
+          },
+          required: ['category_name'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_recent_orders',
+        description: 'Retrieves the most recent orders with their details including items and quantities.',
+        parameters: {
+          type: 'object',
+          properties: {
+            limit: { type: 'number', description: 'Number of recent orders to retrieve (default: 5)' }
           },
         },
+      },
+    },
+    // REMOVED: 'get_low_stock_products' tool was removed to match the updated mcp route.
+    {
+      type: 'function',
+      function: {
+        name: 'get_revenue_stats',
+        description: 'Calculates revenue statistics including total revenue, average order value, and total orders for the last 7 days.',
+        parameters: { type: 'object', properties: {} },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_discount_info',
+        description: 'Retrieves information about all active discounts including their percentages, validity periods, and associated products/categories.',
+        parameters: { type: 'object', properties: {} },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_popular_products',
+        description: 'Gets the most popular products based on sales quantity over a specified period.',
+        parameters: {
+          type: 'object',
+          properties: {
+            days: { type: 'number', description: 'Number of days to look back for sales data (default: 30)' }
+          },
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_order_status_breakdown',
+        description: 'Provides a breakdown of orders by their status (e.g., Pending, Delivered, Cancelled) with counts for each status.',
+        parameters: { type: 'object', properties: {} },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_business_insights',
+        // UPDATED: Description now accurately reflects the available insights.
+        description: 'Provides comprehensive business intelligence and future insights including revenue trends, top performers, and strategic recommendations.',
+        parameters: { type: 'object', properties: {} },
+      },
     },
     {
       type: 'function',
@@ -167,7 +227,7 @@ export async function POST(req) {
       });
 
       if (!toolResponse.ok) throw new Error(`MCP Server error: ${toolResponse.statusText}`);
-      
+
       const toolResultJson = await toolResponse.json();
       const toolResultContent = toolResultJson.content;
 
@@ -176,7 +236,7 @@ export async function POST(req) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'llama3.2',
-          messages: [ ...messages, responseMessage, { role: 'tool', content: toolResultContent } ],
+          messages: [...messages, responseMessage, { role: 'tool', content: toolResultContent }],
           stream: false,
         }),
       });

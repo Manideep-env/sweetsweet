@@ -130,18 +130,25 @@ export default function StorefrontPage() {
       </div>
 
       <section className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">Our Categories</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {categories.map((cat) => (
-            <Link key={cat.id} href={`/${storeSlug}/categories?category=${encodeURIComponent(cat.name)}`}>
-              <div className="border rounded-xl shadow-md p-4 text-center hover:shadow-lg cursor-pointer bg-white h-full">
-                <img src={cat.image || '/category-placeholder.png'} alt={cat.name} className="w-full h-24 object-cover rounded mb-2" />
-                <h3 className="font-semibold">{cat.name}</h3>
-              </div>
-            </Link>
-          ))}
+  <h2 className="text-2xl font-bold mb-4">Our Categories</h2>
+  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+    {categories.map((cat) => (
+      <Link 
+        key={cat.id} 
+        href={`/${storeSlug}/categories?category=${encodeURIComponent(cat.name)}`}
+      >
+        <div className="category-card">
+          <img 
+            src={cat.image || '/category-placeholder.png'} 
+            alt={cat.name} 
+            className="category-img" 
+          />
+          <h3 className="category-name">{cat.name}</h3>
         </div>
-      </section>
+      </Link>
+    ))}
+  </div>
+</section>
 
       {categories.map((cat) => {
         const catProducts = productsByCategory[cat.name] || [];

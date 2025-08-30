@@ -3,24 +3,16 @@
 /* --- Main Navbar Container --- */
 .navbar {
   position: sticky;
-  margin-top: 16px; /* Space from the top of the viewport */
+  margin-top: 16px;
   z-index: 50;
-
-  /* Sizing and Shape */
-
   width: 100%;
   height: 72px;
   border-radius: 9999px;
-  
-
-  /* Appearance */
-  background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
-  backdrop-filter: blur(10px); /* Frosted glass effect */
-  -webkit-backdrop-filter: blur(10px); /* Safari support */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); /* Deeper shadow for floating look */
-  border: 1px solid rgba(255, 255, 255, 0.5);
-
-  /* Internal Layout */
+  background-color: rgba(255, 255, 255, 0.95); /* More opaque for readability */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Softer shadow like product cards */
+  border: 1px solid rgba(226, 232, 240, 0.6);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -42,41 +34,43 @@
 
 /* --- Store Name / Logo --- */
 .store-name {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 2rem !important;
+  font-weight: 700 !important;
   margin: 0;
-  color: #1a202c;
+  color: var(--store-primary-color, #1a202c); /* Theme variable */
   letter-spacing: -0.5px;
 }
 
 /* --- General Link Styling --- */
 .navbar a {
   text-decoration: none;
-  color: #4a5568;
-  padding: 10px 16px;
-  border-radius: 9999px; /* Pill shape for links */
+  padding: 8px 14px;
+  border-radius: 8px; /* match product/category cards */
   transition: all 0.2s ease-in-out;
   font-weight: 500;
   font-size: 0.95rem;
-  border: none;
 }
 
 .navbar a:hover {
-  background-color: #f0f0f0;
+  background-color: #f3f4f6;
   color: #1a202c;
 }
 
 /* --- Active Link Styling --- */
 .navbar a.active {
-  color: var(--store-primary-color, #1a202c);
+  color: var(--store-bg-color, #ffffff);
   font-weight: 600;
-  background-color: #f0f0f0;
+  background-color: var(--store-primary-color, #1a202c);
 }
 
-/* --- Right-Side Icons & Links --- */
+/* --- Cart Icon & Badge --- */
 .cart-icon {
-  font-size: 26px;
   position: relative;
+}
+
+.cart-png {
+  width: 24px;
+  height: 24px;
 }
 
 .cart-count {
@@ -95,26 +89,32 @@
   font-weight: 600;
 }
 
-.profile-link {
+/* --- Profile & Login Buttons (match product buttons) --- */
+
+.profile-link, .login-link {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background-color: #f0f0f0;
-  border: 1px solid #e2e8f0;
-}
-
-.login-link {
-  background-color: #1a202c;
-  color: white;
+  gap: 6px;
+  background-color: var(--store-primary-color, #2d3748);
+  color: var(--store-bg-color, #2d3748) !important;
   font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px; /* consistent with product card buttons */
+  transition: opacity 0.3s;
+  cursor: pointer;
 }
 
-.login-link:hover {
-  background-color: #374151;
-  color: white;
+.profile-link:hover, .login-link:hover {
+  opacity: 0.9;
+  color: var(--store-bg-color, #2d3748) !important;
+  background-color: var(--store-primary-color , #2d3748) !important;
 }
 
-/* --- Profile Link (from previous context) --- */
+/* Profile icon always white */
+.profile-link svg {
+  stroke: white;
+}
+
 .profile-link span {
   font-weight: 500;
 }

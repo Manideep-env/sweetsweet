@@ -112,8 +112,7 @@
 
 /* Product by Category */
 .product-card {
-  background-color: #fff;
-  border: 1px solid #e5e7eb;
+  background-color: #ffffffd5;
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
@@ -146,4 +145,31 @@
 
 .view-all-btn:hover, .order-now-card-btn:hover {
   opacity: 0.9;
+}
+
+/* Category Cards - styled same as product-card */
+.category-card {
+  background-color: #ffffffd5;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: box-shadow 0.3s, transform 0.2s;
+  cursor: pointer;
+}
+.category-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.category-img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.category-name {
+  font-weight: 600;
+  color: #374151;
 }
