@@ -1,3 +1,4 @@
+// Your component file: e.g., src/app/admin/customization/page.js
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,6 +6,8 @@ import './customization.css';
 
 export default function CustomizationPage() {
   const [settings, setSettings] = useState({
+    // --- CHANGE: Add storeName to initial state ---
+    storeName: '',
     primaryColor: '#4F46E5',
     backgroundColor: '#F9FAFB',
     bannerImageUrl: '',
@@ -15,10 +18,21 @@ export default function CustomizationPage() {
 
   useEffect(() => {
     fetch('/api/admin/customization')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch settings');
+        }
+        return res.json();
+      })
       .then(data => {
+        // Set all settings fetched from the API
         setSettings(data);
         setIsLoading(false);
+      })
+      .catch(error => {
+        console.error(error);
+        setIsLoading(false);
+        alert('Could not load store settings.');
       });
   }, []);
 
@@ -35,6 +49,7 @@ export default function CustomizationPage() {
     const formData = new FormData();
     formData.append('file', bannerFile);
 
+    // This endpoint is separate, for file handling only
     const res = await fetch('/api/admin/upload-banner', {
       method: 'POST',
       body: formData,
@@ -60,7 +75,7 @@ export default function CustomizationPage() {
     const res = await fetch('/api/admin/customization', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings),
+      body: JSON.stringify(settings), // Send the whole settings object
     });
 
     if (res.ok) {
@@ -80,6 +95,20 @@ export default function CustomizationPage() {
           <p>Design how your storefront looks to customers.</p>
           <form onSubmit={handleSubmit} className="customization-form">
             
+            {/* --- NEW: Store Name Input --- */}
+            <div className="form-group">
+              <label htmlFor="storeName">Store Name</label>
+              <input
+                type="text"
+                id="storeName"
+                name="storeName"
+                value={settings.storeName}
+                onChange={handleChange}
+                placeholder="e.g., Jay's Sweet Shop"
+                className="text-input" // Add a class for styling if needed
+              />
+            </div>
+
             {/* Primary Color */}
             <div className="form-group">
               <label htmlFor="primaryColor">Primary Color</label>
@@ -94,12 +123,8 @@ export default function CustomizationPage() {
                 <input 
                   type="text" 
                   value={settings.primaryColor} 
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (/^#([0-9A-Fa-f]{3}){1,2}$/.test(val) || val === '') {
-                      setSettings({ ...settings, primaryColor: val });
-                    }
-                  }}
+                  onChange={handleChange}
+                  name="primaryColor" // Ensure name is here for handleChange to work
                   placeholder="#000000"
                 />
               </div>
@@ -118,13 +143,9 @@ export default function CustomizationPage() {
                 />
                 <input 
                   type="text" 
-                  value={settings.backgroundColor} 
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (/^#([0-9A-Fa-f]{3}){1,2}$/.test(val) || val === '') {
-                      setSettings({ ...settings, backgroundColor: val });
-                    }
-                  }}
+                  value={settings.backgroundColor}
+                  name="backgroundColor" // Ensure name is here for handleChange to work
+                  onChange={handleChange}
                   placeholder="#FFFFFF"
                 />
               </div>
@@ -159,7 +180,8 @@ export default function CustomizationPage() {
               />
             )}
             <div className="preview-content">
-              <h3>Welcome to Your Store</h3>
+              {/* --- CHANGE: Display the store name dynamically --- */}
+              <h3>{settings.storeName || 'Welcome to Your Store'}</h3>
               <button style={{ backgroundColor: settings.primaryColor }} className="preview-button">
                 Shop Now
               </button>

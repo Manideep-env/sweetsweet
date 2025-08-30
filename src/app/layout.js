@@ -1,8 +1,6 @@
 // app/layout.js
 import "./globals.css";
-import ConditionalNavbar from "@/components/ConditionalNavbar";
 import Providers from "./providers";
-
 
 export const metadata = {
   title: "Create Next App",
@@ -13,8 +11,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
+        {/* The navbar is no longer here, so it won't show on the homepage */}
         <Providers>
-          <ConditionalNavbar />
           {children}
         </Providers>
       </body>
