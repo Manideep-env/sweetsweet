@@ -60,6 +60,77 @@ export async function POST(req) {
           },
         },
     },
+    {
+      type: 'function',
+      function: {
+        name: 'get_recent_orders',
+        description: 'Retrieves the most recent orders with their details including items and quantities.',
+        parameters: {
+          type: 'object',
+          properties: {
+            limit: { type: 'number', description: 'Number of recent orders to retrieve (default: 5)' }
+          },
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_low_stock_products',
+        description: 'Gets products that are running low on stock, useful for inventory management.',
+        parameters: {
+          type: 'object',
+          properties: {
+            threshold: { type: 'number', description: 'Stock threshold below which products are considered low stock (default: 10)' }
+          },
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_revenue_stats',
+        description: 'Calculates revenue statistics including total revenue, average order value, and total orders for the last 7 days.',
+        parameters: { type: 'object', properties: {} },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_discount_info',
+        description: 'Retrieves information about all active discounts including their percentages, validity periods, and associated products/categories.',
+        parameters: { type: 'object', properties: {} },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_popular_products',
+        description: 'Gets the most popular products based on sales quantity over a specified period.',
+        parameters: {
+          type: 'object',
+          properties: {
+            days: { type: 'number', description: 'Number of days to look back for sales data (default: 30)' }
+          },
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_order_status_breakdown',
+        description: 'Provides a breakdown of orders by their status (pending, completed, cancelled, etc.) with counts for each status.',
+        parameters: { type: 'object', properties: {} },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'get_business_insights',
+        description: 'Provides comprehensive business intelligence and future insights including revenue trends, inventory alerts, top performers, customer retention, and strategic recommendations.',
+        parameters: { type: 'object', properties: {} },
+      },
+    },
   ];
 
   try {
